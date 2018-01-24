@@ -71,7 +71,8 @@ public class DatabaseOperations {
             final String CLIENT_TYPE = String.valueOf(row.get("party_type"));
             switch (CLIENT_TYPE) {
                 case "PERSON":
-                    EntityPerson person = getPersonByPartyId(client.getId());
+//                    EntityPerson person = getPersonByPartyId(client.getId());
+                    EntityPerson person = new EntityPerson();
                     client.setPerson(person);
                     break;
                 case "COMPANY":
@@ -96,7 +97,7 @@ public class DatabaseOperations {
     }
 
     private EntityPerson getPersonByPartyId(String partyId) {
-        String query = "select p.id as \"clientid\", pe.last_name as \"LastName\", pe.given_names as \"FirstName\"\n" +
+        String query = "select pe.last_name as \"LastName\", pe.given_names as \"FirstName\"\n" +
                 "\n" +
                 "from party p\n" +
                 "join person pe on pe.id = p.id\n" +
