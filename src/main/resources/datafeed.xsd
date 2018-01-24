@@ -1,0 +1,743 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSPY v2004 rel. 4 U (http://www.xmlspy.com) by Rob Carty (Visiplan Pty Ltd.) -->
+<!-- edited with XMLSpy v2008 sp1 (http://www.altova.com) by Robert Borthwick (Iress Market Technology Ltd) -->
+<!--
+        External Platform Interface Standards
+        Revision: 4.3.0
+        Date: April 2017
+        Produced by Rob Borthwick - Mob 0434 561 253
+-->
+<xs:schema targetNamespace="http://www.epistandards.com/4.3" elementFormDefault="qualified" attributeFormDefault="unqualified" xmlns="http://www.epistandards.com/4.3" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+	<xs:include schemaLocation="datatypes.xsd"/>
+	<!--The EPILastModified, EPIEarliestData and EPIDataRequest, are used by the FPS to request data from a Platform / Broker / Fund Manager / Life Office associated to a defined entity or entities.  i.e. datafeeds-->
+	<xs:element name="EPILastModifiedRequest">
+		<xs:annotation>
+			<xs:documentation>EPI Last Modified Request</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="CreationDate" type="xs:dateTime"/>
+				<xs:element name="TestIndicator" type="xs:boolean"/>
+				<xs:element name="EPIExtension" type="EPIExtension" minOccurs="0"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="EPILastModifiedResponse">
+		<xs:annotation>
+			<xs:documentation>EPI Last Modified Response</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="Version">
+					<xs:annotation>
+						<xs:documentation>Version of EPI that extract was created. E.g. 4.1</xs:documentation>
+					</xs:annotation>
+					<xs:simpleType>
+						<xs:restriction base="xs:string">
+							<xs:minLength value="1"/>
+							<xs:maxLength value="10"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
+				<xs:element name="Date" type="xs:dateTime">
+					<xs:annotation>
+						<xs:documentation>The date and time at which the extract file / response was generated</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="LastModified" type="xs:dateTime">
+					<xs:annotation>
+						<xs:documentation>The latest modified Date and Time of data available for retrieval by the Financial Planning Software</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="EPIExtension" type="EPIExtension" minOccurs="0"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="EPIEarliestDataRequest">
+		<xs:annotation>
+			<xs:documentation>EPI Earliest Data Request</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="CreationDate" type="xs:dateTime"/>
+				<xs:element name="TestIndicator" type="xs:boolean"/>
+				<xs:element name="EarliestData">
+					<xs:complexType>
+						<xs:choice>
+							<xs:element name="Extract">
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="Id" type="Identifier"/>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="Advisers">
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="Adviser" maxOccurs="unbounded">
+											<xs:complexType>
+												<xs:sequence>
+													<xs:element name="Id" type="Identifier"/>
+												</xs:sequence>
+											</xs:complexType>
+										</xs:element>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="Clients">
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="Client" maxOccurs="unbounded">
+											<xs:complexType>
+												<xs:sequence>
+													<xs:element name="Id" type="Identifier"/>
+												</xs:sequence>
+											</xs:complexType>
+										</xs:element>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="Accounts">
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="Client" maxOccurs="unbounded">
+											<xs:complexType>
+												<xs:sequence>
+													<xs:element name="Id" type="Identifier"/>
+												</xs:sequence>
+											</xs:complexType>
+										</xs:element>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+						</xs:choice>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="EPIExtension" type="EPIExtension" minOccurs="0"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="EPIEarliestDataResponse">
+		<xs:annotation>
+			<xs:documentation>EPI Earliest Data Response</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="Version">
+					<xs:annotation>
+						<xs:documentation>Version of EPI that extract was created. E.g. 4.1</xs:documentation>
+					</xs:annotation>
+					<xs:simpleType>
+						<xs:restriction base="xs:string">
+							<xs:minLength value="1"/>
+							<xs:maxLength value="10"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
+				<xs:element name="Date" type="xs:dateTime">
+					<xs:annotation>
+						<xs:documentation>The date and time at which the extract file / response was generated</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="EarliestData" type="xs:dateTime">
+					<xs:annotation>
+						<xs:documentation>The date of the earliest available transaction for specified entity (Adviser, Client, account etc)</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="EPIExtension" type="EPIExtension" minOccurs="0"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="EPIDataRequest">
+		<xs:annotation>
+			<xs:documentation>EPI Data Request</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="CreationDate" type="xs:dateTime"/>
+				<xs:element name="TestIndicator" type="xs:boolean"/>
+				<xs:choice>
+					<xs:element name="ExtractLevel">
+						<xs:complexType>
+							<xs:sequence>
+								<xs:element name="Id" type="Identifier"/>
+								<xs:element name="Parameters">
+									<xs:complexType>
+										<xs:sequence>
+											<xs:choice>
+												<xs:element name="List">
+													<xs:simpleType>
+														<xs:restriction base="xs:string">
+															<xs:enumeration value="Adviser"/>
+															<xs:enumeration value="Client"/>
+															<xs:enumeration value="Account"/>
+														</xs:restriction>
+													</xs:simpleType>
+												</xs:element>
+												<xs:element name="HoldingsAndPolicies" type="HoldingsAndPolicies"/>
+											</xs:choice>
+											<xs:element name="IncludeClosedAccounts" type="xs:boolean"/>
+											<xs:element name="Products" minOccurs="0">
+												<xs:complexType>
+													<xs:sequence>
+														<xs:element name="EPIProductCode" maxOccurs="unbounded"/>
+													</xs:sequence>
+												</xs:complexType>
+											</xs:element>
+										</xs:sequence>
+									</xs:complexType>
+								</xs:element>
+								<xs:element name="EPIExtension" type="EPIExtension" minOccurs="0"/>
+							</xs:sequence>
+						</xs:complexType>
+					</xs:element>
+					<xs:element name="AdviserLevel">
+						<xs:complexType>
+							<xs:sequence>
+								<xs:element name="Advisers">
+									<xs:complexType>
+										<xs:sequence>
+											<xs:element name="Adviser" maxOccurs="unbounded">
+												<xs:complexType>
+													<xs:sequence>
+														<xs:element name="Id" type="Identifier"/>
+														<xs:element name="FPSId" type="Identifier" minOccurs="0"/>
+														<xs:element name="APIRCode" minOccurs="0">
+															<xs:simpleType>
+																<xs:restriction base="xs:string">
+																	<xs:length value="9"/>
+																</xs:restriction>
+															</xs:simpleType>
+														</xs:element>
+													</xs:sequence>
+												</xs:complexType>
+											</xs:element>
+										</xs:sequence>
+									</xs:complexType>
+								</xs:element>
+								<xs:element name="Parameters">
+									<xs:complexType>
+										<xs:sequence>
+											<xs:choice>
+												<xs:element name="List">
+													<xs:simpleType>
+														<xs:restriction base="xs:string">
+															<xs:enumeration value="Client"/>
+															<xs:enumeration value="Account"/>
+														</xs:restriction>
+													</xs:simpleType>
+												</xs:element>
+												<xs:element name="HoldingsAndPolicies" type="HoldingsAndPolicies"/>
+											</xs:choice>
+											<xs:element name="IncludeClosedAccounts" type="xs:boolean"/>
+											<xs:element name="Products" minOccurs="0">
+												<xs:complexType>
+													<xs:sequence>
+														<xs:element name="EPIProductCode" maxOccurs="unbounded"/>
+													</xs:sequence>
+												</xs:complexType>
+											</xs:element>
+											<xs:element name="EPIExtension" type="EPIExtension" minOccurs="0"/>
+										</xs:sequence>
+									</xs:complexType>
+								</xs:element>
+								<xs:element name="EPIExtension" type="EPIExtension" minOccurs="0"/>
+							</xs:sequence>
+						</xs:complexType>
+					</xs:element>
+					<xs:element name="ClientLevel">
+						<xs:complexType>
+							<xs:sequence>
+								<xs:element name="Clients">
+									<xs:complexType>
+										<xs:sequence>
+											<xs:element name="Client" maxOccurs="unbounded">
+												<xs:complexType>
+													<xs:sequence>
+														<xs:element name="Id" type="Identifier"/>
+														<xs:element name="FPSId" type="Identifier" minOccurs="0"/>
+													</xs:sequence>
+												</xs:complexType>
+											</xs:element>
+										</xs:sequence>
+									</xs:complexType>
+								</xs:element>
+								<xs:element name="Parameters">
+									<xs:complexType>
+										<xs:sequence>
+											<xs:choice>
+												<xs:element name="AccountList"/>
+												<xs:element name="HoldingsAndPolicies" type="HoldingsAndPolicies"/>
+											</xs:choice>
+											<xs:element name="IncludeClosedAccounts" type="xs:boolean"/>
+											<xs:element name="Products" minOccurs="0">
+												<xs:complexType>
+													<xs:sequence>
+														<xs:element name="EPIProductCode" maxOccurs="unbounded"/>
+													</xs:sequence>
+												</xs:complexType>
+											</xs:element>
+											<xs:element name="EPIExtension" type="EPIExtension" minOccurs="0"/>
+										</xs:sequence>
+									</xs:complexType>
+								</xs:element>
+								<xs:element name="EPIExtension" type="EPIExtension" minOccurs="0"/>
+							</xs:sequence>
+						</xs:complexType>
+					</xs:element>
+					<xs:element name="AccountLevel">
+						<xs:complexType>
+							<xs:sequence>
+								<xs:element name="Accounts">
+									<xs:complexType>
+										<xs:sequence>
+											<xs:element name="Account" maxOccurs="unbounded">
+												<xs:complexType>
+													<xs:sequence>
+														<xs:element name="Id" type="Identifier"/>
+														<xs:element name="FPSId" type="Identifier" minOccurs="0"/>
+													</xs:sequence>
+												</xs:complexType>
+											</xs:element>
+										</xs:sequence>
+									</xs:complexType>
+								</xs:element>
+								<xs:element name="Parameters">
+									<xs:complexType>
+										<xs:sequence>
+											<xs:choice>
+												<xs:element name="ClientList">
+													<xs:complexType/>
+												</xs:element>
+												<xs:element name="HoldingsAndPolicies" type="HoldingsAndPolicies"/>
+											</xs:choice>
+											<xs:element name="IncludeClosedAccounts" type="xs:boolean"/>
+											<xs:element name="EPIExtension" type="EPIExtension" minOccurs="0"/>
+										</xs:sequence>
+									</xs:complexType>
+								</xs:element>
+								<xs:element name="EPIExtension" type="EPIExtension" minOccurs="0"/>
+							</xs:sequence>
+						</xs:complexType>
+					</xs:element>
+					<xs:element name="InvestmentDetailsLevel">
+						<xs:complexType>
+							<xs:sequence>
+								<xs:element name="Parameters">
+									<xs:complexType>
+										<xs:sequence>
+											<xs:element name="IncludeInvestmentDetails" type="xs:boolean"/>
+											<xs:element name="IncludePricing" type="xs:boolean"/>
+											<xs:element name="IncludeAssetAllocation" type="xs:boolean"/>
+											<xs:element name="EPIExtension" type="EPIExtension" minOccurs="0"/>
+										</xs:sequence>
+									</xs:complexType>
+								</xs:element>
+							</xs:sequence>
+						</xs:complexType>
+					</xs:element>
+				</xs:choice>
+				<xs:element name="EPIExtension" type="EPIExtension" minOccurs="0"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="EPIDataResponse">
+		<xs:annotation>
+			<xs:documentation>EPI Data Response</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="Version">
+					<xs:annotation>
+						<xs:documentation>Version of EPI that extract was created. E.g. 4.1</xs:documentation>
+					</xs:annotation>
+					<xs:simpleType>
+						<xs:restriction base="xs:string">
+							<xs:minLength value="1"/>
+							<xs:maxLength value="10"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:element>
+				<xs:element name="Date" type="xs:dateTime">
+					<xs:annotation>
+						<xs:documentation>The date and time at which the extract file / response was generated</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="ExtractMethod">
+					<xs:annotation>
+						<xs:documentation>The ExtractMethod element defines whether the extract was instigated via a request from the FPS (Web Service call) or generated as part of Providers daily processing.  </xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:choice>
+							<xs:element name="FPSRequest">
+								<xs:annotation>
+									<xs:documentation>The presence of this element  indicates that the extract was instigated by the FPS</xs:documentation>
+								</xs:annotation>
+								<xs:simpleType>
+									<xs:restriction base="xs:string">
+										<xs:enumeration value="Yes"/>
+									</xs:restriction>
+								</xs:simpleType>
+							</xs:element>
+							<xs:sequence>
+								<xs:annotation>
+									<xs:documentation>Indicates that the generation of the extract file was been instigated by the Provider.</xs:documentation>
+								</xs:annotation>
+								<xs:element name="SequenceNumber" type="xs:positiveInteger">
+									<xs:annotation>
+										<xs:documentation>This is the number of files that have been supplied for the specified Extract Identifier. 
+NOTE:  Files delivered to Financial Planning Software must have sequential Sequence Numbers.</xs:documentation>
+									</xs:annotation>
+								</xs:element>
+								<xs:element name="Resequence" type="xs:string" minOccurs="0">
+									<xs:annotation>
+										<xs:documentation>The mere presence of this element, indicates that previous sequence numbers are to be ignored, and that this number is the next valid number </xs:documentation>
+									</xs:annotation>
+								</xs:element>
+							</xs:sequence>
+						</xs:choice>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="Provider" type="Platform">
+					<xs:annotation>
+						<xs:documentation>Details relating to the Data Provider.</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="SecurityMaster" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>An investment product, is a investment (e.g. Share, Managed Fund, Bond, Option etc) that is offered within the Product.</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="InvestmentProduct" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:documentation>For every Investment Product referenced in Investment Holdings, Investment Product details must be supplied.</xs:documentation>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:complexContent>
+										<xs:extension base="InvestmentProduct"/>
+									</xs:complexContent>
+								</xs:complexType>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="Advisers" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>The adviser element details all information about an intermediary/Adviser</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="Adviser" maxOccurs="unbounded">
+								<xs:complexType>
+									<xs:complexContent>
+										<xs:extension base="Adviser"/>
+									</xs:complexContent>
+								</xs:complexType>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="Clients" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Clients associated to the adviser.</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="Client" maxOccurs="unbounded">
+								<xs:complexType>
+									<xs:complexContent>
+										<xs:extension base="Client"/>
+									</xs:complexContent>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="ClientRelationship" minOccurs="0" maxOccurs="unbounded">
+								<xs:annotation>
+									<xs:documentation>Details the relationships between clients.   e.g.  Client1 is partner to Client10</xs:documentation>
+								</xs:annotation>
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="ClientID" type="Identifier"/>
+										<xs:element name="RelatedClientID" type="Identifier"/>
+										<xs:element name="RelationshipType" type="RelationshipType"/>
+										<xs:element name="Delete" type="xs:boolean"/>
+										<xs:element name="EPIExtension" type="EPIExtension" minOccurs="0"/>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="Accounts" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Accounts/Policies held by Clients under advice of the Adviser</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="AccountDetails">
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="Account" maxOccurs="unbounded">
+											<xs:annotation>
+												<xs:documentation>Details pertaining to a particular account/policy</xs:documentation>
+											</xs:annotation>
+											<xs:complexType>
+												<xs:complexContent>
+													<xs:extension base="Account"/>
+												</xs:complexContent>
+											</xs:complexType>
+										</xs:element>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="InvestmentHoldings" minOccurs="0">
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="InvestmentHolding" maxOccurs="unbounded">
+											<xs:annotation>
+												<xs:documentation>Details about an Investment Holding not specific to a transaction.  e.g. Details about a term deposit</xs:documentation>
+											</xs:annotation>
+											<xs:complexType>
+												<xs:sequence>
+													<xs:element name="AccountId" type="Identifier"/>
+													<xs:element name="InvestmentCode" type="InvestmentCode"/>
+													<xs:element name="Exchange">
+														<xs:simpleType>
+															<xs:restriction base="xs:string">
+																<xs:minLength value="1"/>
+															</xs:restriction>
+														</xs:simpleType>
+													</xs:element>
+													<xs:element name="HoldingId" type="Identifier" minOccurs="0">
+														<xs:annotation>
+															<xs:documentation>HIN / SRN </xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="IsSMA" minOccurs="0">
+														<xs:complexType>
+															<xs:sequence>
+																<xs:element name="Id" type="Identifier"/>
+																<xs:element name="Type">
+																	<xs:simpleType>
+																		<xs:restriction base="xs:string">
+																			<xs:enumeration value="Parent"/>
+																			<xs:enumeration value="Child"/>
+																		</xs:restriction>
+																	</xs:simpleType>
+																</xs:element>
+															</xs:sequence>
+														</xs:complexType>
+													</xs:element>
+													<xs:element name="IsTermDeposit" minOccurs="0">
+														<xs:complexType>
+															<xs:sequence>
+																<xs:element name="InterestRate" type="PositivePercentage">
+																	<xs:annotation>
+																		<xs:documentation>The Interest Rate of the Term Deposit</xs:documentation>
+																	</xs:annotation>
+																</xs:element>
+																<xs:element name="CommencementDate" type="xs:date" minOccurs="0">
+																	<xs:annotation>
+																		<xs:documentation>The Commencement Date of the Term Deposit</xs:documentation>
+																	</xs:annotation>
+																</xs:element>
+																<xs:element name="MaturityDate" type="xs:date" minOccurs="0">
+																	<xs:annotation>
+																		<xs:documentation>The Maturity Date of the Term Deposit</xs:documentation>
+																	</xs:annotation>
+																</xs:element>
+																<xs:element name="Term" minOccurs="0">
+																	<xs:annotation>
+																		<xs:documentation>The length of the Term Deposit in Days</xs:documentation>
+																	</xs:annotation>
+																	<xs:simpleType>
+																		<xs:restriction base="xs:integer">
+																			<xs:minInclusive value="1"/>
+																		</xs:restriction>
+																	</xs:simpleType>
+																</xs:element>
+															</xs:sequence>
+														</xs:complexType>
+													</xs:element>
+													<xs:element name="IsCashAccount" type="xs:boolean">
+														<xs:annotation>
+															<xs:documentation>Is this holding the 'Working' Cash Account for the Account</xs:documentation>
+														</xs:annotation>
+													</xs:element>
+													<xs:element name="IsSubjectToCGT" type="xs:boolean" minOccurs="0"/>
+													<xs:element name="CapitalGuaranteeAmount" type="MonetaryAmount" minOccurs="0"/>
+													<xs:element name="Notes" minOccurs="0">
+														<xs:complexType>
+															<xs:sequence>
+																<xs:element name="Note" type="Note"/>
+															</xs:sequence>
+														</xs:complexType>
+													</xs:element>
+													<xs:element name="MarginLoanLVR" type="PositivePercentage" minOccurs="0"/>
+													<xs:sequence>
+														<xs:annotation>
+															<xs:documentation>Details of the Investment Holding that is to be deleted from the account</xs:documentation>
+														</xs:annotation>
+														<xs:element name="Deleted" type="xs:boolean"/>
+														<xs:element name="DeletionDate" type="xs:dateTime" minOccurs="0">
+															<xs:annotation>
+																<xs:documentation>Date/Time that the Investment Holding was deleted on the Platform.</xs:documentation>
+															</xs:annotation>
+														</xs:element>
+													</xs:sequence>
+													<xs:element name="EPIExtension" type="EPIExtension" minOccurs="0"/>
+												</xs:sequence>
+											</xs:complexType>
+										</xs:element>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="MovementTransactions" minOccurs="0">
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="MovementTransaction" maxOccurs="unbounded">
+											<xs:annotation>
+												<xs:documentation>Transactions that effect the balance of the Investment Holding</xs:documentation>
+											</xs:annotation>
+											<xs:complexType>
+												<xs:complexContent>
+													<xs:extension base="InvestmentHoldingTransaction"/>
+												</xs:complexContent>
+											</xs:complexType>
+										</xs:element>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="IncomeEntitlements" minOccurs="0">
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="IncomeEntitlement" maxOccurs="unbounded">
+											<xs:annotation>
+												<xs:documentation>Transactions indicating Income that has been earned from the Investment.  These transactions do not affect the balance of the investment holding.</xs:documentation>
+											</xs:annotation>
+											<xs:complexType>
+												<xs:complexContent>
+													<xs:extension base="InvestmentHoldingIncomeEntitlement"/>
+												</xs:complexContent>
+											</xs:complexType>
+										</xs:element>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="MatchCGTParcels" minOccurs="0">
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="MatchCGTParcel" maxOccurs="unbounded">
+											<xs:complexType>
+												<xs:complexContent>
+													<xs:extension base="InvestmentHoldingCGTParcelMatching"/>
+												</xs:complexContent>
+											</xs:complexType>
+										</xs:element>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+							<xs:element name="AccountBalances" minOccurs="0">
+								<xs:complexType>
+									<xs:sequence>
+										<xs:element name="AccountBalance" maxOccurs="unbounded">
+											<xs:complexType>
+												<xs:complexContent>
+													<xs:extension base="AccountBalance"/>
+												</xs:complexContent>
+											</xs:complexType>
+										</xs:element>
+									</xs:sequence>
+								</xs:complexType>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="InsurancePolicies" type="InsurancePolicies" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Details relating to insurance policies</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="PersonalAssets" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Assets that are held directly by the Client (or an account)</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="Asset" type="Asset" maxOccurs="unbounded"/>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="Liabilities" minOccurs="0">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="Liability" type="Liability" maxOccurs="unbounded"/>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="CommissionPayments" minOccurs="0">
+					<xs:annotation>
+						<xs:documentation>Details of Commission Payments made</xs:documentation>
+					</xs:annotation>
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="CommissionPayment" maxOccurs="unbounded">
+								<xs:complexType>
+									<xs:complexContent>
+										<xs:extension base="CommissionPayment"/>
+									</xs:complexContent>
+								</xs:complexType>
+							</xs:element>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+				<xs:element name="Documents" minOccurs="0">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="Document" type="Document" maxOccurs="unbounded"/>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<!--The EPI ValidateCredentials is used to validate an entities logon credentials with a Platform / Broker / Fund Manager / Life Office; and retrieve the expiry date of said credentails.-->
+	<xs:element name="EPIValidateCredentialsRequest">
+		<xs:annotation>
+			<xs:documentation>EPI Validate Credentials request message</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="CreationDate" type="xs:dateTime">
+					<xs:annotation>
+						<xs:documentation>The date and time at which the message was generated.</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="TestIndicator" type="xs:boolean">
+					<xs:annotation>
+						<xs:documentation>Indicates whether the message is a test. This may facilitate the conduction of test run messages in non-test environments.</xs:documentation>
+					</xs:annotation>
+				</xs:element>
+				<xs:element name="EPIExtension" type="EPIExtension" minOccurs="0"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<xs:element name="EPIValidateCredentialsResponse">
+		<xs:annotation>
+			<xs:documentation>EPI Validate Credentials response message</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="ValidCredentials" type="xs:boolean"/>
+				<xs:element name="Expiry" type="xs:dateTime" minOccurs="0"/>
+				<xs:element name="EPIExtension" type="EPIExtension" minOccurs="0"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<!--The EPI Fault is used as a extension to the standard SOAP fault, to provide specific details of an error encountered during a WebService request-->
+	<xs:element name="EPIFault" type="EPIFault">
+		<xs:annotation>
+			<xs:documentation>EPI Fault</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+</xs:schema>
