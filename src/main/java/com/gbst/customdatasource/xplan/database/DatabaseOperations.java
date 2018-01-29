@@ -28,7 +28,7 @@ public class DatabaseOperations {
         List<EPIDataResponse.Advisers.Adviser> advisers = new ArrayList<>();
         List<Map<String, Object>> rows = sharesTemplate.queryForList(query, params);
 
-        for(Map row: rows) {
+        for (Map row : rows) {
             EPIDataResponse.Advisers.Adviser adviser = new EPIDataResponse.Advisers.Adviser();
             adviser.setId(String.valueOf(row.get("Id")));
             adviser.setFirstName(String.valueOf(row.get("FirstName")));
@@ -39,12 +39,11 @@ public class DatabaseOperations {
     }
 
 
-
     public List<EPIDataResponse.Clients.Client> getClientsByAdviserId(String adviserId) {
         String orgCode = getOrgCodeFromAdviserId(adviserId);
         String advCode = getAdvCodeFromAdviserId(adviserId);
 
-        String query ="\n" +
+        String query = "\n" +
                 "select distinct p.id, p.party_type\n" +
                 "\n" +
                 "from party p\n" +
@@ -65,7 +64,7 @@ public class DatabaseOperations {
         List<EPIDataResponse.Clients.Client> clients = new ArrayList<>();
         List<Map<String, Object>> rows = sharesTemplate.queryForList(query, params);
 
-        for(Map row: rows) {
+        for (Map row : rows) {
             EPIDataResponse.Clients.Client client = new EPIDataResponse.Clients.Client();
             client.setId(String.valueOf(row.get("id")));
             final String CLIENT_TYPE = String.valueOf(row.get("party_type"));
@@ -105,7 +104,8 @@ public class DatabaseOperations {
         Map<String, Integer> params = new HashMap<>();
         params.put("partyId", Integer.parseInt(partyId));
 
-        ContactDetails contactDetails = getContactDetailsByPartyId(partyId);
+        ContactDetails contactDetails = getContactDetailsByPartyId(partyId, ClientType.PERSON);
+
         RowMapper<EntityPerson> mapper = new RowMapper<EntityPerson>() {
             @Override
             public EntityPerson mapRow(ResultSet rs, int i) throws SQLException {
@@ -123,7 +123,7 @@ public class DatabaseOperations {
         return person;
     }
 
-    private ContactDetails getContactDetailsByPartyId(String partyId) {
+    private ContactDetails getContactDetailsByPartyId(String partyId, ClientType clientType) {
         String query = "select p.id, " +
                 "p.party_type,\n" +
                 "'Addresses' as \"ContactTypes\",\n" +
@@ -143,8 +143,8 @@ public class DatabaseOperations {
                 cd.setPreferredContactMethod(ContactMethod.UNKNOWN);
                 List<Object> details = cd.getAddressesOrPhoneNumbersOrEmailAddresses();
                 ContactDetails.Addresses addresses = new ContactDetails.Addresses();
-                ContactDetails.Addresses.Address a = getAddress(partyId);
-                addresses.getAddress().add(a);
+                List<ContactDetails.Addresses.Address> allAddresses = getAddresses(partyId, clientType);
+                addresses.getAddress().addAll(allAddresses);
                 details.add(addresses);
                 return cd;
             }
@@ -154,7 +154,8 @@ public class DatabaseOperations {
         return contactDetails;
     }
 
-    private ContactDetails.Addresses.Address getAddress(String partyId) {
+    private List<ContactDetails.Addresses.Address> getAddresses(String partyId, ClientType clientType) {
+        List<ContactDetails.Addresses.Address> result = new ArrayList<ContactDetails.Addresses.Address>();
         String addressQuery = "select (case when paddr.address_type = 'POSTAL' then 'Postal' else 'Street' end) as \"Type\", " +
                 "addr.line1 as \"Line1\", " +
                 "addr.line2 as \"Line2\", " +
@@ -173,25 +174,26 @@ public class DatabaseOperations {
 
         Map<String, Integer> params = new HashMap<>();
         params.put("partyId", Integer.parseInt(partyId));
-
-        RowMapper<ContactDetails.Addresses.Address> addressMapper = new RowMapper<ContactDetails.Addresses.Address>() {
-            @Override
-            public ContactDetails.Addresses.Address mapRow(ResultSet rs, int i) throws SQLException {
-                ContactDetails.Addresses.Address temp = new  ContactDetails.Addresses.Address();
-                temp.setType(AddressType.fromValue(rs.getString("Type")));
-                temp.setLine1(rs.getString("Line1"));
-                temp.setLine2(rs.getString("Line2"));
-                temp.setLine3(rs.getString("Line3"));
-                temp.setSuburb(rs.getString("Suburb"));
-                temp.setState(rs.getString("State"));
-                temp.setPostCode(rs.getString("Postcode"));
-                temp.setCountry(Country.fromValue(rs.getString("Country")));
-                return temp;
+        List<Map<String, Object>> rows = sharesTemplate.queryForList(addressQuery, params);
+        for (Map row : rows) {
+            ContactDetails.Addresses.Address temp = new ContactDetails.Addresses.Address();
+            temp.setType(AddressType.fromValue(String.valueOf(row.get("Type"))));
+            temp.setLine1(String.valueOf(row.get("Line1")));
+            temp.setLine1(String.valueOf(row.get("Line2")));
+            temp.setLine1(String.valueOf(row.get("Line3")));
+            temp.setLine1(String.valueOf(row.get("Suburb")));
+            temp.setLine1(String.valueOf(row.get("State")));
+            temp.setLine1(String.valueOf(row.get("Postcode")));
+            temp.setLine1(String.valueOf(row.get("Country")));
+            if (clientType == ClientType.PERSON) {
+                // Postal address is preferred
+                if (temp.getType() == AddressType.POSTAL) {
+                    temp.setPreferred(true);
+                }
             }
-        };
-
-        ContactDetails.Addresses.Address a = sharesTemplate.queryForObject(addressQuery, params, addressMapper);
-        return a;
+            result.add(temp);
+        }
+        return result;
     }
 
     private String getOrgCodeFromAdviserId(String adviserId) {
