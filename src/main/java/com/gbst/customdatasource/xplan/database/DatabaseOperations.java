@@ -71,8 +71,7 @@ public class DatabaseOperations {
             final String CLIENT_TYPE = String.valueOf(row.get("party_type"));
             switch (CLIENT_TYPE) {
                 case "PERSON":
-//                    EntityPerson person = getPersonByPartyId(client.getId());
-                    EntityPerson person = new EntityPerson();
+                    EntityPerson person = getPersonByPartyId(client.getId());
                     client.setPerson(person);
                     break;
                 case "COMPANY":
@@ -106,14 +105,14 @@ public class DatabaseOperations {
         Map<String, String> params = new HashMap<>();
         params.put("partyId", partyId);
 
-//        ContactDetails contactDetails = getContactDetailsByPartyId(partyId);
+        ContactDetails contactDetails = getContactDetailsByPartyId(partyId);
         RowMapper<EntityPerson> mapper = new RowMapper<EntityPerson>() {
             @Override
             public EntityPerson mapRow(ResultSet rs, int i) throws SQLException {
                 EntityPerson entityPerson = new EntityPerson();
                 entityPerson.setFirstName(rs.getString("FirstName"));
                 entityPerson.setLastName(rs.getString("LastName"));
-//                entityPerson.setContactDetails(contactDetails);
+                entityPerson.setContactDetails(contactDetails);
                 return entityPerson;
             }
         };
@@ -126,24 +125,70 @@ public class DatabaseOperations {
 
     private ContactDetails getContactDetailsByPartyId(String partyId) {
         String query = "select p.id, p.party_type,\n" +
-                "'Addresses' as \"ContactTypes\", -- indicates that an address lookup is required\n" +
+                "'Addresses' as \"ContactTypes\",\n" +
                 "'Unknown' as \"PreferredContactMethod\"\n" +
                 "\n" +
                 "from party p\n" +
                 "\n" +
                 "where p.id = :partyId";
 
-        Map<String, String> params = new HashMap<>();
-        params.put("partyId", partyId);
+        Map<String, Integer> params = new HashMap<>();
+        params.put("partyId", Integer.parseInt(partyId));
 
         ContactDetails contactDetails = sharesTemplate.queryForObject(query, params, new RowMapper<ContactDetails>() {
             @Override
             public ContactDetails mapRow(ResultSet rs, int i) throws SQLException {
-                ContactDetails details = new ContactDetails();
-                return details;
+                ContactDetails cd = new ContactDetails();
+                cd.setPreferredContactMethod(ContactMethod.UNKNOWN);
+                List<Object> details = cd.getAddressesOrPhoneNumbersOrEmailAddresses();
+                ContactDetails.Addresses addresses = new ContactDetails.Addresses();
+                ContactDetails.Addresses.Address a = getAddress(partyId);
+                addresses.getAddress().add(a);
+                details.add(addresses);
+                return cd;
             }
         });
         return contactDetails;
+    }
+
+    private ContactDetails.Addresses.Address getAddress(String partyId) {
+        String addressQuery = "select (case when paddr.address_type = 'POSTAL' then 'Postal' else 'Street' end) as \"Type\", " +
+                "addr.line1 as \"Line1\", " +
+                "addr.line2 as \"Line2\", " +
+                "addr.line3 as \"Line3\", " +
+                "addr.suburb as \"Suburb\", " +
+                "addr.state as \"State\", " +
+                "addr.postcode as \"Postcode\", \n" +
+                "sc.\"ISO2-country\" as \"Country\",\n" +
+                "(case when paddr.address_type = 'POSTAL' then 'T' else 'F' end) as \"Preferred\"\n" +
+                "\n" +
+                "from address addr\n" +
+                "join party_address paddr on paddr.address_id = addr.id\n" +
+                "join country country on country.id = addr.country_id\n" +
+                "join shares.countries sc on sc.\"ISO3-country\" = country.alpha3_code\n" +
+                "join party p on p.id = paddr.party_id\n" +
+                "\n" +
+                "where paddr.party_id = :partyId";
+
+        Map<String, Integer> params = new HashMap<>();
+        params.put("partyId", Integer.parseInt(partyId));
+
+        ContactDetails.Addresses.Address a = sharesTemplate.queryForObject(addressQuery, params, new RowMapper<ContactDetails.Addresses.Address>() {
+            @Override
+            public ContactDetails.Addresses.Address mapRow(ResultSet rs, int i) throws SQLException {
+                ContactDetails.Addresses.Address temp = new  ContactDetails.Addresses.Address();
+                temp.setType(AddressType.fromValue(rs.getString("Type")));
+                temp.setLine1(rs.getString("Line1"));
+                temp.setLine2(rs.getString("Line2"));
+                temp.setLine3(rs.getString("Line3"));
+                temp.setSuburb(rs.getString("Suburb"));
+                temp.setState(rs.getString("State"));
+                temp.setPostCode(rs.getString("Postcode"));
+                temp.setCountry(Country.fromValue(rs.getString("Country")));
+                return temp;
+            }
+        });
+        return a;
     }
 
     private String getOrgCodeFromAdviserId(String adviserId) {

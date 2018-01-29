@@ -104,7 +104,8 @@ public class XplanApplication {
 		Platform provider = factory.createPlatform();
 		setupProvider(provider);
 		epiDataResponse.setProvider(provider);
-		// 5. Advisers
+		// 5. Advisers - The adviser element details all information about an intermediary/Adviser
+		// 6. Clients associated to the adviser
 		EPIDataResponse.Advisers advisers = factory.createEPIDataResponseAdvisers();
 		EPIDataResponse.Clients clients = factory.createEPIDataResponseClients();
 		List<EPIDataResponse.Advisers.Adviser> adviserList = getAdvisers();
@@ -117,6 +118,8 @@ public class XplanApplication {
 		}
 		epiDataResponse.setAdvisers(advisers);
 		epiDataResponse.setClients(clients);
+
+		// 7.
 
 
 		// generating the xml output
