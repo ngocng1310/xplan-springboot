@@ -102,8 +102,8 @@ public class DatabaseOperations {
                 "join person pe on pe.id = p.id\n" +
                 "\n" +
                 "where p.id = :partyId";
-        Map<String, String> params = new HashMap<>();
-        params.put("partyId", partyId);
+        Map<String, Integer> params = new HashMap<>();
+        params.put("partyId", Integer.parseInt(partyId));
 
         ContactDetails contactDetails = getContactDetailsByPartyId(partyId);
         RowMapper<EntityPerson> mapper = new RowMapper<EntityPerson>() {
@@ -124,7 +124,8 @@ public class DatabaseOperations {
     }
 
     private ContactDetails getContactDetailsByPartyId(String partyId) {
-        String query = "select p.id, p.party_type,\n" +
+        String query = "select p.id, " +
+                "p.party_type,\n" +
                 "'Addresses' as \"ContactTypes\",\n" +
                 "'Unknown' as \"PreferredContactMethod\"\n" +
                 "\n" +
@@ -135,7 +136,7 @@ public class DatabaseOperations {
         Map<String, Integer> params = new HashMap<>();
         params.put("partyId", Integer.parseInt(partyId));
 
-        ContactDetails contactDetails = sharesTemplate.queryForObject(query, params, new RowMapper<ContactDetails>() {
+        RowMapper<ContactDetails> mapper = new RowMapper<ContactDetails>() {
             @Override
             public ContactDetails mapRow(ResultSet rs, int i) throws SQLException {
                 ContactDetails cd = new ContactDetails();
@@ -147,7 +148,9 @@ public class DatabaseOperations {
                 details.add(addresses);
                 return cd;
             }
-        });
+        };
+
+        ContactDetails contactDetails = sharesTemplate.queryForObject(query, params, mapper);
         return contactDetails;
     }
 
@@ -158,22 +161,20 @@ public class DatabaseOperations {
                 "addr.line3 as \"Line3\", " +
                 "addr.suburb as \"Suburb\", " +
                 "addr.state as \"State\", " +
-                "addr.postcode as \"Postcode\", \n" +
-                "sc.\"ISO2-country\" as \"Country\",\n" +
+                "addr.postcode as \"Postcode\", " +
+                "sc.\"ISO2-country\" as \"Country\", " +
                 "(case when paddr.address_type = 'POSTAL' then 'T' else 'F' end) as \"Preferred\"\n" +
-                "\n" +
                 "from address addr\n" +
                 "join party_address paddr on paddr.address_id = addr.id\n" +
                 "join country country on country.id = addr.country_id\n" +
                 "join shares.countries sc on sc.\"ISO3-country\" = country.alpha3_code\n" +
                 "join party p on p.id = paddr.party_id\n" +
-                "\n" +
                 "where paddr.party_id = :partyId";
 
         Map<String, Integer> params = new HashMap<>();
         params.put("partyId", Integer.parseInt(partyId));
 
-        ContactDetails.Addresses.Address a = sharesTemplate.queryForObject(addressQuery, params, new RowMapper<ContactDetails.Addresses.Address>() {
+        RowMapper<ContactDetails.Addresses.Address> addressMapper = new RowMapper<ContactDetails.Addresses.Address>() {
             @Override
             public ContactDetails.Addresses.Address mapRow(ResultSet rs, int i) throws SQLException {
                 ContactDetails.Addresses.Address temp = new  ContactDetails.Addresses.Address();
@@ -187,7 +188,9 @@ public class DatabaseOperations {
                 temp.setCountry(Country.fromValue(rs.getString("Country")));
                 return temp;
             }
-        });
+        };
+
+        ContactDetails.Addresses.Address a = sharesTemplate.queryForObject(addressQuery, params, addressMapper);
         return a;
     }
 
@@ -200,6 +203,7 @@ public class DatabaseOperations {
         String[] arr = adviserId.split("-");
         return arr[1];
     }
+
     @Autowired
     public void setSharesDataSource(DataSource sharesDataSource) {
         this.sharesTemplate = new NamedParameterJdbcTemplate(sharesDataSource);
