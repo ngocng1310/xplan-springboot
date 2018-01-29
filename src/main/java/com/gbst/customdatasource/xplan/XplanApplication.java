@@ -107,17 +107,18 @@ public class XplanApplication {
 		// 5. Advisers - The adviser element details all information about an intermediary/Adviser
 		// 6. Clients associated to the adviser
 		EPIDataResponse.Advisers advisers = factory.createEPIDataResponseAdvisers();
-		EPIDataResponse.Clients clients = factory.createEPIDataResponseClients();
+
 		List<EPIDataResponse.Advisers.Adviser> adviserList = getAdvisers();
 		for(EPIDataResponse.Advisers.Adviser adviser: adviserList) {
 			advisers.getAdviser().add(adviser);
+			EPIDataResponse.Clients clients = factory.createEPIDataResponseClients();
 			List<EPIDataResponse.Clients.Client> clientList = getClientsByAdviserId(adviser.getId());
 			for (EPIDataResponse.Clients.Client client : clientList) {
 				clients.getClient().add(client);
 			}
+			epiDataResponse.setClients(clients);
 		}
 		epiDataResponse.setAdvisers(advisers);
-		epiDataResponse.setClients(clients);
 
 		// 7.
 

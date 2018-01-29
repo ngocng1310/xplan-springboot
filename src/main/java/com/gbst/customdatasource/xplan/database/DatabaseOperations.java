@@ -20,7 +20,9 @@ public class DatabaseOperations {
 
     public List<EPIDataResponse.Advisers.Adviser> getAdvisers() {
 //        String query = queryRepository.getQuery("getAdviserInfoQuery");
-        String query = "SELECT a.orgcode||'-'||a.advcode as Id, a.advname as FirstName, a.advname as LastName FROM shares.advisor a";
+
+        // advisers.sql
+        String query = "SELECT a.orgcode||'-'||a.advcode AS Id, a.advname AS FirstName, a.advname AS LastName FROM shares.advisor a";
         Map<String, String> params = new HashMap<>();
 //        params.put("orgCode", orgCode);
 //        params.put("advCode", advCode);
@@ -38,25 +40,68 @@ public class DatabaseOperations {
         return advisers;
     }
 
+    public List<EPIDataResponse.Accounts.AccountDetails.Account> getAccountsByAdviserId(String adviserId) {
+        String orgCode = getOrgCodeFromAdviserId(adviserId);
+        String advCode = getAdvCodeFromAdviserId(adviserId);
+
+        String query = "select c.clcode as id,\n" +
+                "'INVESTMENT' as \"Type\",\n" +
+                "'PARAMETER' as \"EPIProductCode\",\n" +
+                "(case when c.\"cl-status\" = 'ACTIVE' then 'Open' else (case when c.\"cl-status\" = 'INACTIVE' then 'Closed' else (CASE WHEN c.\"cl-status\" = 'SUSPEND' THEN 'Suspended' ELSE 'Pending' end) end) end) as \"AccountStatus\",\n" +
+                "'AUD' as \"AccountCurrency\",\n" +
+                "'F' as \"Delete\"\n" +
+                "\n" +
+                "from shares.client c\n" +
+                "join shares.advisor ad on ad.advisorid = c.advisorid\n" +
+                "\n" +
+                "where ad.advcode = :advCode\n" +
+                "and ad.orgcode = :orgCode\n";
+
+        Map<String, String> params = new HashMap<>();
+        params.put("advCode", advCode);
+        params.put("orgCode", orgCode);
+
+        List<EPIDataResponse.Accounts.AccountDetails.Account> accounts = new ArrayList<>();
+        List<Map<String, Object>> rows = sharesTemplate.queryForList(query, params);
+
+        for (Map row : rows) {
+            EPIDataResponse.Accounts.AccountDetails.Account account = new EPIDataResponse.Accounts.AccountDetails.Account();
+            account.setId(String.valueOf(row.get("id")));
+//            account.setType(String.valueOf(row.get("Type")));
+            account.setEPIProductCode(String.valueOf(row.get("EPIProductCode")));// Set by an input control to the XPlan extract.
+//            account.setAccountStatus(String.valueOf(row.get("AccountStatus")));
+            account.setAccountCurrency(CurrencyCode.valueOf(String.valueOf(row.get("AccountCurrency"))));
+            account.setOwners(null); // need to get owner
+            account.setAdvisers(null); // need to get advisers
+            account.setDelete(false); // hardcoded
+
+            accounts.add(account);
+        }
+
+        return accounts;
+    }
+
 
     public List<EPIDataResponse.Clients.Client> getClientsByAdviserId(String adviserId) {
         String orgCode = getOrgCodeFromAdviserId(adviserId);
         String advCode = getAdvCodeFromAdviserId(adviserId);
 
+        // clients.sql
         String query = "\n" +
-                "select distinct p.id, p.party_type\n" +
+                "SELECT DISTINCT p.id, p.party_type\n" +
                 "\n" +
-                "from party p\n" +
-                "join party_role pr on pr.party_id = p.id\n" +
-                "join party_role_account_relationship prar on pr.id = prar.party_role_id\n" +
-                "join account a on a.back_office = 'SHARES' and a.id = prar.account_id -- We will be assuming a one to one relationship exists between Shares accounts and DCA accounts\n" +
-                "join shares.client c on c.clcode = a.account_number\n" +
-                "join shares.advisor ad on ad.advisorid = c.advisorid\n" +
+                "FROM party p\n" +
+                "JOIN party_role pr ON pr.party_id = p.id\n" +
+                "JOIN party_role_account_relationship prar ON pr.id = prar.party_role_id\n" +
+                "JOIN account a ON a.back_office = 'SHARES' AND a.id = prar.account_id -- We will be assuming a one to one relationship exists between Shares accounts and DCA accounts\n" +
+                "JOIN shares.client c ON c.clcode = a.account_number\n" +
+                "JOIN shares.advisor ad ON ad.advisorid = c.advisorid\n" +
                 "\n" +
-                "where\n" +
+                "WHERE\n" +
                 "ad.advcode = :advCode -- passed through from advisers.sql - advisercode\n" +
-                "and ad.orgcode = :orgCode -- passed through from advisers.sql - adviserorganisation\n" +
-                "and (party_type in ('COMPANY','TRUST','SUPERANNUATION_FUND') OR (party_type = 'PERSON' and prar.party_role_account_rel_type = 'OWNER' and (prar.party_role_account_onboarding_rel_type is null))) -- logic TBC";
+                "AND ad.orgcode = :orgCode -- passed through from advisers.sql - adviserorganisation\n" +
+                "AND (party_type IN ('COMPANY','TRUST','SUPERANNUATION_FUND') OR (party_type = 'PERSON' AND prar.party_role_account_rel_type = 'OWNER' AND (prar.party_role_account_onboarding_rel_type IS NULL))) -- logic TBC";
+
         Map<String, String> params = new HashMap<>();
         params.put("orgCode", orgCode);
         params.put("advCode", advCode);
@@ -68,21 +113,22 @@ public class DatabaseOperations {
             EPIDataResponse.Clients.Client client = new EPIDataResponse.Clients.Client();
             client.setId(String.valueOf(row.get("id")));
             final String CLIENT_TYPE = String.valueOf(row.get("party_type"));
+            final String partyId = client.getId();
             switch (CLIENT_TYPE) {
                 case "PERSON":
-                    EntityPerson person = getPersonByPartyId(client.getId());
+                    EntityPerson person = getPersonByPartyId(partyId);
                     client.setPerson(person);
                     break;
                 case "COMPANY":
-                    EntityOrganisation organisation = new EntityOrganisation();
+                    EntityOrganisation organisation = getOrganisationByPartyId(partyId);
                     client.setOrganisation(organisation);
                     break;
                 case "TRUST":
-                    EntityTrust trust = new EntityTrust();
+                    EntityTrust trust = getTrustByPartyId(partyId);
                     client.setTrust(trust);
                     break;
                 case "SUPERANNUATION_FUND":
-                    EntitySuperfund superfund = new EntitySuperfund();
+                    EntitySuperfund superfund = getSuperFundByPartyId(partyId);
                     client.setSuperfund(superfund);
                     break;
                 default:
@@ -94,15 +140,89 @@ public class DatabaseOperations {
         return clients;
     }
 
-    private EntityPerson getPersonByPartyId(String partyId) {
-        String query = "select pe.last_name as \"LastName\", pe.given_names as \"FirstName\"\n" +
+    private EntityOrganisation getOrganisationByPartyId(String partyId) {
+        String query = "SELECT p.id AS \"clientid\", p.party_name AS \"Name\"\n" +
                 "\n" +
-                "from party p\n" +
-                "join person pe on pe.id = p.id\n" +
+                "FROM party p\n" +
                 "\n" +
-                "where p.id = :partyId";
+                "WHERE p.id = :partyId";
+
         Map<String, Integer> params = new HashMap<>();
-        params.put("partyId", Integer.parseInt(partyId));
+        params.put("partyId", Integer.valueOf(partyId));
+
+        ContactDetails contactDetails = getContactDetailsByPartyId(partyId, ClientType.COMPANY);
+
+        RowMapper<EntityOrganisation> mapper = new RowMapper<EntityOrganisation>() {
+            @Override
+            public EntityOrganisation mapRow(ResultSet rs, int i) throws SQLException {
+                EntityOrganisation organisation = new EntityOrganisation();
+                organisation.setName(String.valueOf(rs.getString("Name")));
+                organisation.setContactDetails(contactDetails);
+                return organisation;
+            }
+        };
+
+        EntityOrganisation organisation = sharesTemplate.queryForObject(query, params, mapper);
+
+        return organisation;
+    }
+
+    private EntityTrust getTrustByPartyId(String partyId) {
+        String query = "SELECT p.id AS \"clientid\", p.party_name AS \"Name\"\n" +
+                "\n" +
+                "FROM party p\n" +
+                "\n" +
+                "WHERE p.id = :partyId";
+
+        Map<String, Integer> params = new HashMap<>();
+        params.put("partyId", Integer.valueOf(partyId));
+        RowMapper<EntityTrust> mapper = new RowMapper<EntityTrust>() {
+            @Override
+            public EntityTrust mapRow(ResultSet rs, int i) throws SQLException {
+                EntityTrust entityTrust = new EntityTrust();
+                entityTrust.setName(String.valueOf(rs.getString("Name")));
+                return entityTrust;
+            }
+        };
+        EntityTrust trust = sharesTemplate.queryForObject(query, params, mapper);
+        return trust;
+    }
+
+    private EntitySuperfund getSuperFundByPartyId(String partyId) {
+        String query = "SELECT p.id AS \"clientid\", p.party_name AS \"Name\"\n" +
+                "\n" +
+                "FROM party p\n" +
+                "\n" +
+                "WHERE p.id = :partyId";
+
+        Map<String, Integer> params = new HashMap<>();
+        params.put("partyId", Integer.valueOf(partyId));
+
+        RowMapper<EntitySuperfund> mapper = new RowMapper<EntitySuperfund>() {
+            @Override
+            public EntitySuperfund mapRow(ResultSet rs, int i) throws SQLException {
+                EntitySuperfund entitySuperfund = new EntitySuperfund();
+                entitySuperfund.setName(String.valueOf(rs.getString("Name")));
+                return entitySuperfund;
+            }
+        };
+
+        EntitySuperfund superfund = sharesTemplate.queryForObject(query, params, mapper);
+
+        return superfund;
+    }
+
+    private EntityPerson getPersonByPartyId(String partyId) {
+        // persons.sql
+        String query = "SELECT pe.last_name AS \"LastName\", pe.given_names AS \"FirstName\"\n" +
+                "\n" +
+                "FROM party p\n" +
+                "JOIN person pe ON pe.id = p.id\n" +
+                "\n" +
+                "WHERE p.id = :partyId";
+        Map<String, Integer> params = new HashMap<>();
+        params.put("partyId", Integer.valueOf(partyId));
+
 
         ContactDetails contactDetails = getContactDetailsByPartyId(partyId, ClientType.PERSON);
 
@@ -190,6 +310,12 @@ public class DatabaseOperations {
                 if (temp.getType() == AddressType.POSTAL) {
                     temp.setPreferred(true);
                 }
+            } else if (clientType == ClientType.COMPANY || clientType == ClientType.TRUST || clientType == ClientType.SUPERANNUATION_FUND) {
+                if (temp.getType() == AddressType.STREET) {
+                    temp.setPreferred(true);
+                }
+            } else {
+                temp.setPreferred(false);
             }
             result.add(temp);
         }
