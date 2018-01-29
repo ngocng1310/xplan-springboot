@@ -4,6 +4,7 @@ import com.gbst.customdatasource.xplan.database.DatabaseOperations;
 import com.gbst.customdatasource.xplan.domain.Client;
 import com.gbst.customdatasource.xplan.domain.EPIDataResponse;
 import com.gbst.customdatasource.xplan.domain.ObjectFactory;
+import com.gbst.customdatasource.xplan.domain.Platform;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -12,16 +13,23 @@ import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.datatype.DatatypeConfigurationException;
+import javax.xml.datatype.DatatypeFactory;
+import javax.xml.datatype.XMLGregorianCalendar;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.math.BigInteger;
 import java.sql.SQLException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.List;
 
 @SpringBootApplication
 public class XplanApplication {
 
 	private static DatabaseOperations databaseOperations = null;
+	private static final String XPLAN_EXTRACT_TIME_FORMAT = "YYYY-MM-DDTHH:mm:ss";
 
 	public static void main(String[] args) throws SQLException, DatatypeConfigurationException {
 		ConfigurableApplicationContext context = SpringApplication.run(
@@ -30,7 +38,7 @@ public class XplanApplication {
 		databaseOperations = (DatabaseOperations) context
 				.getBean("databaseOperations");
 
-		File xmlDocument = new File("C://test//datafeed.xml");
+		File xmlDocument = new File("D://temp//datafeed.xml");
 		generateXMLDocument(xmlDocument);
 	}
 
@@ -46,14 +54,57 @@ public class XplanApplication {
 		return null;
 	}
 
+	private static XMLGregorianCalendar getExtractRunTime() {
+		try {
+			SimpleDateFormat sdf = new SimpleDateFormat("YYYY-MM-DDThh:mm:ss");
+			String date = sdf.format(new Date());
+			return DatatypeFactory.newInstance().newXMLGregorianCalendar(date);
+		} catch (Exception e) {
+			return null;
+		}
+	}
+
+	// TODO: retrieve the squence number from system
+	// This is the number of files that have been supplied for the specified Extract Identifier. NOTE: Files delivered to Financial Planning Software must have sequential Sequence Numbers
+	private static BigInteger getSequenceNum() {
+		return BigInteger.valueOf(5);
+	}
+
+	// TODO: retrieve the resequence from input control if there is
+	// The mere presence of this element, indicates that previous sequence numbers are to be ignored, and that this number is the next valid number
+	private static String getReSequence() {
+		return "2";
+	}
+
+	// TODO: retrieve the data from input control
+	private static void setupProvider(Platform provider) {
+		// A unique identifier for the Platform Provider
+		provider.setEPIId("7");
+		// Registered business name of the Platform Provider
+		provider.setName("GBST");
+	}
+
 	private static void generateXMLDocument(File xmlDocument) throws DatatypeConfigurationException {
 		ObjectFactory factory = new ObjectFactory();
+
 		EPIDataResponse epiDataResponse = factory.createEPIDataResponse();
 
-//        EPIDataResponse.ExtractMethod extractMethod = factory.createEPIDataResponseExtractMethod() ;
-//        extractMethod.setSequenceNumber(getSequenceNum());
-//        extractMethod.setResequence(getReSequence());
+		// Refer to EPI 4.3.0 XML Data Mapping for more details
 
+		// 1. Version of EPI that extract was created
+		epiDataResponse.setVersion("4.3");
+		// 2. The date and time at which the extract file / response was generated
+		epiDataResponse.setDate(getExtractRunTime());
+		// 3. The ExtractMethod element defines whether the extract was instigated via a request from the FPS (Web Service call) or generated as part of Providers daily processing
+		EPIDataResponse.ExtractMethod extractMethod = factory.createEPIDataResponseExtractMethod() ;
+		extractMethod.setSequenceNumber(getSequenceNum());
+		extractMethod.setResequence(getReSequence());
+		epiDataResponse.setExtractMethod(extractMethod);
+		// 4. Details relating to the Data Provider
+		Platform provider = factory.createPlatform();
+		setupProvider(provider);
+		epiDataResponse.setProvider(provider);
+		// 5. Advisers
 		EPIDataResponse.Advisers advisers = factory.createEPIDataResponseAdvisers();
 		EPIDataResponse.Clients clients = factory.createEPIDataResponseClients();
 		List<EPIDataResponse.Advisers.Adviser> adviserList = getAdvisers();
@@ -64,12 +115,11 @@ public class XplanApplication {
 				clients.getClient().add(client);
 			}
 		}
-
-//        epiDataResponse.setExtractMethod(extractMethod);
 		epiDataResponse.setAdvisers(advisers);
 		epiDataResponse.setClients(clients);
 
 
+		// generating the xml output
 		JAXBContext context;
 		try { //"com.gbst.reporting.datasource.report.xplan.datafeed"
 			context = JAXBContext.newInstance(
