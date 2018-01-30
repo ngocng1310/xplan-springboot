@@ -21,6 +21,7 @@ import java.io.FileOutputStream;
 import java.math.BigInteger;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.List;
@@ -52,6 +53,10 @@ public class XplanApplication {
 
 	private static List<EPIDataResponse.Clients.Client> getClientsByAdviserId(String adviserId) {
 		return databaseOperations.getClientsByAdviserId(adviserId);
+	}
+
+	private static List<EPIDataResponse.SecurityMaster.InvestmentProduct> getInvestmentProducts() {
+		return databaseOperations.getInvestmentProducts();
 	}
 
 	private static List<EPIDataResponse.Advisers.Adviser> getAdvisersLinkedToClient(String partyId) {
@@ -129,10 +134,16 @@ public class XplanApplication {
 		EPIDataResponse.Accounts.AccountDetails accountDetails = new EPIDataResponse.Accounts.AccountDetails();
 		List<EPIDataResponse.Accounts.AccountDetails.Account> accountList = getAccounts();
 		accountDetails.getAccount().addAll(accountList);
-
-
 		accounts.setAccountDetails(accountDetails);
 		epiDataResponse.setAccounts(accounts);
+
+		// 8. SecurityMaster - An investment product, is a investment (e.g. Share, Managed Fund, Bond, Option etc) that is offered within the Product
+		EPIDataResponse.SecurityMaster securityMaster = factory.createEPIDataResponseSecurityMaster();
+		List<EPIDataResponse.SecurityMaster.InvestmentProduct> investmentProducts = getInvestmentProducts();
+
+		securityMaster.getInvestmentProduct().addAll(investmentProducts);
+		epiDataResponse.setSecurityMaster(securityMaster);
+
 
 		// generating the xml output
 		JAXBContext context;

@@ -53,6 +53,44 @@ public class DatabaseOperations {
         return advisers;
     }
 
+    public List<EPIDataResponse.SecurityMaster.InvestmentProduct> getInvestmentProducts() {
+        List<EPIDataResponse.SecurityMaster.InvestmentProduct> investmentProducts = new ArrayList<EPIDataResponse.SecurityMaster.InvestmentProduct>();
+        // new query to retrieve investment product from the new EPIInvestmentProducts table
+        String query = "select investmentcode, exchange, \"name\", nativecountry, nativecurrency, \"type\", status, unitised \n" +
+                "from EPIInvestmentProducts\n";
+        Map<String, String> params = new HashMap<>();
+        List<Map<String, Object>> rows = sharesTemplate.queryForList(query, params);
+        for (Map row : rows) {
+            EPIDataResponse.SecurityMaster.InvestmentProduct investmentProduct = new EPIDataResponse.SecurityMaster.InvestmentProduct();
+            investmentProduct.setInvestmentCode(String.valueOf(row.get("investmentcode")));
+            investmentProduct.setExchange(String.valueOf(row.get("exchange")));
+            investmentProduct.setName(String.valueOf(row.get("name")));
+            investmentProduct.setNativeCountry(formatInvestmentProductCountry(String.valueOf(row.get("nativecountry"))));
+            investmentProduct.setNativeCurrency(formatInvestmentProductCurrency(String.valueOf(row.get("nativecurrency"))));
+            investmentProduct.setType(String.valueOf(row.get("type")));
+            investmentProduct.setStatus(String.valueOf(row.get("status")));
+            investmentProduct.setUnitised((Boolean) row.get("unitised"));
+            investmentProducts.add(investmentProduct);
+        }
+        return investmentProducts;
+    }
+
+    private CurrencyCode formatInvestmentProductCurrency(String value) {
+        try {
+            return CurrencyCode.valueOf(value);
+        } catch (Exception e) {
+            return CurrencyCode.AUD;
+        }
+    }
+
+    private Country formatInvestmentProductCountry(String value) {
+        try {
+            return Country.valueOf(value);
+        } catch (Exception e) {
+            return Country.AU;
+        }
+    }
+
     public List<EPIDataResponse.Accounts.AccountDetails.Account> getAccounts() {
         List<EPIDataResponse.Accounts.AccountDetails.Account> accounts = getAccountsByAdviserId(XPLAN_ADVISER);
         return accounts;
