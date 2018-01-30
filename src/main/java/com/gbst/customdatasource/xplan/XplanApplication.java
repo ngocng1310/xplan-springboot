@@ -59,6 +59,10 @@ public class XplanApplication {
 		return databaseOperations.getInvestmentProducts();
 	}
 
+	private static List<EPIDataResponse.Accounts.InvestmentHoldings.InvestmentHolding> getInvestmentHoldings() {
+		return databaseOperations.getInvestmentHoldings();
+	}
+
 	private static List<EPIDataResponse.Advisers.Adviser> getAdvisersLinkedToClient(String partyId) {
 		return null;
 	}
@@ -135,6 +139,12 @@ public class XplanApplication {
 		List<EPIDataResponse.Accounts.AccountDetails.Account> accountList = getAccounts();
 		accountDetails.getAccount().addAll(accountList);
 		accounts.setAccountDetails(accountDetails);
+
+		EPIDataResponse.Accounts.InvestmentHoldings investmentHoldings = new EPIDataResponse.Accounts.InvestmentHoldings();
+		List<EPIDataResponse.Accounts.InvestmentHoldings.InvestmentHolding> investmentHoldingsList = getInvestmentHoldings();
+		investmentHoldings.getInvestmentHolding().addAll(investmentHoldingsList);
+		accounts.setInvestmentHoldings(investmentHoldings);
+
 		epiDataResponse.setAccounts(accounts);
 
 		// 8. SecurityMaster - An investment product, is a investment (e.g. Share, Managed Fund, Bond, Option etc) that is offered within the Product

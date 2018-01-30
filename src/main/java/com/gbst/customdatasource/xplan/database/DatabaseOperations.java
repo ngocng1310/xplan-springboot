@@ -53,6 +53,37 @@ public class DatabaseOperations {
         return advisers;
     }
 
+    public List<EPIDataResponse.Accounts.InvestmentHoldings.InvestmentHolding> getInvestmentHoldings() {
+        List<EPIDataResponse.Accounts.InvestmentHoldings.InvestmentHolding> investmentHoldingsList = new ArrayList<>();
+        // investmentholdings.sql
+        String query = "select c.clcode as \"AccountId\",\n" +
+                "ch.seccode as \"InvestmentCode\",\n" +
+                "ch.\"market-id\" as \"Exchange\",\n" +
+                "'F' as \"IsCashAccount\",\n" +
+                "'AUD' as \"AccountCurrency\",\n" +
+                "'F' as \"Delete\",\n" +
+                "'F' as \"Deleted\"\n" +
+                "from shares.client c\n" +
+                "join shares.advisor ad on ad.advisorid = c.advisorid\n" +
+                "join shares.\"cli-hold\" ch on ch.clcode = c.clcode\n" +
+                "where ad.advcode = :advCode\n" +
+                "and ad.orgcode = :orgCode\n";
+        Map<String, String> params = new HashMap<>();
+        params.put("advCode", ADVISER_CODE);
+        params.put("orgCode", ORG_CODE);
+        List<Map<String, Object>> rows = sharesTemplate.queryForList(query, params);
+        for (Map row : rows) {
+            EPIDataResponse.Accounts.InvestmentHoldings.InvestmentHolding investmentHolding = new EPIDataResponse.Accounts.InvestmentHoldings.InvestmentHolding();
+            investmentHolding.setAccountId(String.valueOf(row.get("AccountId")));
+            investmentHolding.setInvestmentCode(String.valueOf(row.get("InvestmentCode")));
+            investmentHolding.setExchange(String.valueOf(row.get("Exchange")));
+            investmentHolding.setIsCashAccount(false);
+            investmentHolding.setDeleted(false);
+            investmentHoldingsList.add(investmentHolding);
+        }
+        return investmentHoldingsList;
+    }
+
     public List<EPIDataResponse.SecurityMaster.InvestmentProduct> getInvestmentProducts() {
         List<EPIDataResponse.SecurityMaster.InvestmentProduct> investmentProducts = new ArrayList<EPIDataResponse.SecurityMaster.InvestmentProduct>();
         // new query to retrieve investment product from the new EPIInvestmentProducts table
