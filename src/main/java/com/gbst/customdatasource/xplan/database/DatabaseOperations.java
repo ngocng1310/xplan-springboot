@@ -7,6 +7,8 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Component;
 
 import javax.sql.DataSource;
+import javax.xml.datatype.DatatypeFactory;
+import javax.xml.datatype.XMLGregorianCalendar;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -60,6 +62,7 @@ public class DatabaseOperations {
         String orgCode = getOrgCodeFromAdviserId(adviserId);
         String advCode = getAdvCodeFromAdviserId(adviserId);
 
+        // accountdetails.sql
         String query = "select c.clcode as id,\n" +
                 "'INVESTMENT' as \"Type\",\n" +
                 "'PARAMETER' as \"EPIProductCode\",\n" +
@@ -82,19 +85,106 @@ public class DatabaseOperations {
 
         for (Map row : rows) {
             EPIDataResponse.Accounts.AccountDetails.Account account = new EPIDataResponse.Accounts.AccountDetails.Account();
-            account.setId(String.valueOf(row.get("id")));
-//            account.setType(String.valueOf(row.get("Type")));
+            String clcode = String.valueOf(row.get("id"));
+            Account.Type accType = formatAccountType(String.valueOf(row.get("Type")), clcode);
+            account.setId(clcode);
+            if (accType != null) {
+                account.setType(accType);
+            }
             account.setEPIProductCode(String.valueOf(row.get("EPIProductCode")));// Set by an input control to the XPlan extract.
-//            account.setAccountStatus(String.valueOf(row.get("AccountStatus")));
+            account.setAccountStatus(formatAccountStatus(String.valueOf(row.get("AccountStatus"))));
             account.setAccountCurrency(CurrencyCode.valueOf(String.valueOf(row.get("AccountCurrency"))));
-            account.setOwners(null); // need to get owner
-            account.setAdvisers(null); // need to get advisers
+            account.setOwners(formatAccountOwners(clcode)); // need to get owner
+            account.setAdvisers(formatAccountAdvisers(clcode)); // need to get advisers
             account.setDelete(false); // hardcoded
-
             accounts.add(account);
         }
-
         return accounts;
+    }
+
+    private Account.Advisers formatAccountAdvisers(String clcode) {
+        Account.Advisers advisers = new Account.Advisers();
+        // accountadvisers.sql
+        String query = "select  ad.orgcode||'-'||ad.advcode as id, 'T' as \"PrimaryAdviser\", '2018-01-01' as \"StartDate\"\n" +
+                "FROM shares.client c \n" +
+                "join shares.advisor ad on ad.advisorid = c.advisorid\n" +
+                "where c.clcode = :clcode";
+        Map<String, String> params = new HashMap<>();
+        params.put("clcode", clcode);
+        List<Map<String, Object>> rows = sharesTemplate.queryForList(query, params);
+        for (Map row : rows) {
+            Account.Advisers.Adviser adviser = new Account.Advisers.Adviser();
+            adviser.setId(String.valueOf(row.get("id")));
+            adviser.setPrimaryAdviser(true); // sql returns T
+            adviser.setStartDate(getTime(String.valueOf(row.get("StartDate"))));
+            advisers.getAdviser().add(adviser);
+        }
+        return advisers;
+    }
+
+    private static XMLGregorianCalendar getTime(String dateTime) {
+        try {
+            return DatatypeFactory.newInstance().newXMLGregorianCalendar(dateTime);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private Account.Owners formatAccountOwners(String clcode) {
+        Account.Owners owners = new Account.Owners();
+        // accountowners.sql
+        String query = "select p.id, p.party_name, p.party_type, prar.party_role_account_onboarding_rel_type, prar.party_role_account_rel_type\n" +
+                "FROM party p \n" +
+                "JOIN party_role pr on p.id = pr.party_id\n" +
+                "join party_role_account_relationship prar on pr.id = prar.party_role_id\n" +
+                "join account a on a.back_office = 'SHARES' and a.id = prar.account_id\n" +
+                "where a.account_number = :clcode\n" +
+                "and (party_type in ('COMPANY','TRUST','SUPERANNUATION_FUND') OR (party_type = 'PERSON' and prar.party_role_account_rel_type = 'OWNER' and (prar.party_role_account_onboarding_rel_type is null)))";
+
+        Map<String, String> params = new HashMap<>();
+        params.put("clcode", clcode);
+        List<Map<String, Object>> rows = sharesTemplate.queryForList(query, params);
+        for (Map row : rows) {
+            Account.Owners.Owner owner = new Account.Owners.Owner();
+            owner.setId(String.valueOf(row.get("id")));
+            owners.getOwner().add(owner);
+        }
+        return owners;
+    }
+
+    private Account.AccountStatus formatAccountStatus (String value) {
+        Account.AccountStatus accStatus = new Account.AccountStatus();
+        accStatus.setStatus(value);
+        return accStatus;
+    }
+
+    private Account.Type formatAccountType (String accType, String clcode) {
+        if (accType.equalsIgnoreCase("INVESTMENT")) {
+            Account.Type result = new Account.Type();
+
+            // accounttype-investment.sql
+            String query = "SELECT c.clcode as id, c.surname as \"Name\"\n" +
+                    "FROM shares.client c \n" +
+                    "where c.clcode = :clcode\n";
+
+            Map<String, String> params = new HashMap<>();
+            params.put("clcode", clcode);
+
+            RowMapper<Account.Type.Investment> mapper = new RowMapper<Account.Type.Investment>() {
+                @Override
+                public Account.Type.Investment mapRow(ResultSet rs, int i) throws SQLException {
+                    Account.Type.Investment investmentType = new Account.Type.Investment();
+                    investmentType.setName(String.valueOf(rs.getString("Name")));
+                    return investmentType;
+                }
+            };
+            Account.Type.Investment investment = sharesTemplate.queryForObject(query, params, mapper);
+            result.setInvestment(investment);
+            return result;
+        } else {
+            // logging to say it's out of scope
+        }
+        return null;
     }
 
 

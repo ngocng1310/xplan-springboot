@@ -125,14 +125,14 @@ public class XplanApplication {
 		epiDataResponse.setAdvisers(advisers);
 
 		// 7. Accounts/Policies held by Clients under advice of the Adviser
-//		EPIDataResponse.Accounts accounts = factory.createEPIDataResponseAccounts();
-//		EPIDataResponse.Accounts.AccountDetails accountDetails = new EPIDataResponse.Accounts.AccountDetails();
-//		List<EPIDataResponse.Accounts.AccountDetails.Account> accountList = getAccounts();
-//		accountDetails.getAccount().addAll(accountList);
-//
-//
-//		accounts.setAccountDetails(accountDetails);
-//		epiDataResponse.setAccounts(accounts);
+		EPIDataResponse.Accounts accounts = factory.createEPIDataResponseAccounts();
+		EPIDataResponse.Accounts.AccountDetails accountDetails = new EPIDataResponse.Accounts.AccountDetails();
+		List<EPIDataResponse.Accounts.AccountDetails.Account> accountList = getAccounts();
+		accountDetails.getAccount().addAll(accountList);
+
+
+		accounts.setAccountDetails(accountDetails);
+		epiDataResponse.setAccounts(accounts);
 
 		// generating the xml output
 		JAXBContext context;
