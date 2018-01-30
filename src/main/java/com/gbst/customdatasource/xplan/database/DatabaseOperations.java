@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 import javax.sql.DataSource;
 import javax.xml.datatype.DatatypeFactory;
 import javax.xml.datatype.XMLGregorianCalendar;
+import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -52,6 +53,82 @@ public class DatabaseOperations {
         }
         return advisers;
     }
+
+    public List<EPIDataResponse.Accounts.MovementTransactions.MovementTransaction> getMovementTransaction() {
+        List<EPIDataResponse.Accounts.MovementTransactions.MovementTransaction> movementTransactions = new ArrayList<>();
+        // movementtransaction.sql
+        String query = "select c.clcode as \"AccountId\",\n" +
+                "cli.seccode as \"InvestmentCode\",\n" +
+                "cli.\"tran-mkt\" as \"Exchange\",\n" +
+                "(case when cli.\"tran-code\" in ('BCN','SCN') then cli.\"tran-ref\" else cast(cli.\"tran-seq\" as varchar) end) as id,\n" +
+                "(case when cli.\"tran-code\" = 'BCN' then 'T00082' else (case when cli.\"tran-code\" = 'SCN' then 'T00090' else (case when clit.\"total-hold\" = 1 then 'T00004' else 'T00003' end) end) end) as \"TransactionType\", -- needs to be mapped to EPI supported transaction types...\n" +
+                "cli.\"tran-cncy\" as \"TransactionCurrency\",\n" +
+                "(case when clit.\"total-hold\" = 1 then cli.\"tran-value\" + cli.\"tran-cost\" else cli.\"tran-value\" end) as \"GrossValue\",\n" +
+                "(case when clit.\"total-hold\" = -1 then cli.\"tran-value\" + cli.\"tran-cost\" else cli.\"tran-value\" end) as \"NetValue\",\n" +
+                "cli.\"tran-date\" as \"TransactionDate\",\n" +
+                "'Settled' as \"SettlementStatus\",\n" +
+                "(case when cn.\"sett-date\" is null then cli.\"tran-date\" else cn.\"sett-date\" end) as \"SettlementDate\",\n" +
+                "(case when cn.\"sett-date\" is null then cli.\"tran-date\" else cn.\"sett-date\" end) as \"TaxDate\",\n" +
+                "'F' as \"Delete\",\n" +
+                "cli.\"tran-quant\" * clit.\"total-hold\" as \"Units\",\n" +
+                "(case when clit.\"total-hold\" = 1 then cli.\"tran-value\" + cli.\"tran-cost\" else cli.\"tran-value\" end) as \"CostBase\"\n" +
+                "\n" +
+                "from shares.client c\n" +
+                "join shares.advisor ad on ad.advisorid = c.advisorid\n" +
+                "join shares.clitran cli on cli.clcode = c.clcode\n" +
+                "join shares.\"cli-trtype\" clit on clit.\"tran-type\" = cli.\"tran-code\"\n" +
+                "left join shares.cnote cn on cast(cn.\"cnote-num\" as varchar) = cli.\"tran-ref\" and cli.\"tran-code\" in ('BCN','SCN')\n" +
+                "\n" +
+                "where ad.advcode = :advCode\n" +
+                "and ad.orgcode = :orgCode\n" +
+                "and cli.\"tran-date\" = '2017-07-28'\n"; // date should be passed from input control
+        Map<String, String> params = new HashMap<>();
+        params.put("advCode", ADVISER_CODE);
+        params.put("orgCode", ORG_CODE);
+        List<Map<String, Object>> rows = sharesTemplate.queryForList(query, params);
+        for (Map row : rows) {
+            EPIDataResponse.Accounts.MovementTransactions.MovementTransaction movementTransaction = new EPIDataResponse.Accounts.MovementTransactions.MovementTransaction();
+            movementTransaction.setAccountId(String.valueOf(row.get("AccountId")));
+            movementTransaction.setInvestmentCode(String.valueOf(row.get("InvestmentCode")));
+            movementTransaction.setExchange(String.valueOf(row.get("Exchange")));
+            movementTransaction.setTransactionType(formatTransactionType(String.valueOf(row.get("TransactionType"))));
+            movementTransaction.setGrossValue(formatMoneytoryValue((BigDecimal) row.get("GrossValue")));
+            movementTransaction.setNetValue(formatMoneytoryValue((BigDecimal) row.get("NetValue")));
+            movementTransaction.setTransactionDate(getTime(String.valueOf(row.get("TransactionDate"))));
+            movementTransaction.setSettlementStatus(String.valueOf(row.get("SettlementStatus")));
+            movementTransaction.setSettlementDate(getTime(String.valueOf(row.get("SettlementDate"))));
+            movementTransaction.setTaxDate(getTime(String.valueOf(row.get("TaxDate"))));
+            movementTransaction.setDelete(formatBooleanValue(String.valueOf(row.get("Delete"))));
+            movementTransaction.setUnits((BigDecimal) row.get("Units"));
+            movementTransaction.setCostBase(formatMoneytoryValue((BigDecimal) row.get("CostBase")));
+            movementTransactions.add(movementTransaction);
+        }
+        return movementTransactions;
+    }
+
+    private InvestmentHoldingTransactionType formatTransactionType(String value) {
+        try {
+            return InvestmentHoldingTransactionType.fromValue(value);
+        } catch (Exception e) {
+            // remember to log this kind of error in the error log to notify the invalid returned from the query/database
+            return InvestmentHoldingTransactionType.T_00001;
+        }
+    }
+
+    private boolean formatBooleanValue(String value) {
+        if (value.equalsIgnoreCase("T") || value.equalsIgnoreCase("TRUE") || value.equalsIgnoreCase("Y") || value.equalsIgnoreCase("YES")) {
+            return true;
+        }
+        return false;
+    }
+
+    private MonetaryAmount formatMoneytoryValue(BigDecimal value) {
+        MonetaryAmount amount = new MonetaryAmount();
+        amount.setValue(value);
+        return amount;
+    }
+
+
 
     public List<EPIDataResponse.Accounts.InvestmentHoldings.InvestmentHolding> getInvestmentHoldings() {
         List<EPIDataResponse.Accounts.InvestmentHoldings.InvestmentHolding> investmentHoldingsList = new ArrayList<>();

@@ -63,6 +63,10 @@ public class XplanApplication {
 		return databaseOperations.getInvestmentHoldings();
 	}
 
+	private static List<EPIDataResponse.Accounts.MovementTransactions.MovementTransaction> getMovementTransaction() {
+		return databaseOperations.getMovementTransaction();
+	}
+
 	private static List<EPIDataResponse.Advisers.Adviser> getAdvisersLinkedToClient(String partyId) {
 		return null;
 	}
@@ -133,7 +137,7 @@ public class XplanApplication {
 		}
 		epiDataResponse.setAdvisers(advisers);
 
-		// 7. Accounts/Policies held by Clients under advice of the Adviser
+		// 7. Accounts/Policies held by Clients under advice of the Adviser: account details, investment holding, movement transaction
 		EPIDataResponse.Accounts accounts = factory.createEPIDataResponseAccounts();
 		EPIDataResponse.Accounts.AccountDetails accountDetails = new EPIDataResponse.Accounts.AccountDetails();
 		List<EPIDataResponse.Accounts.AccountDetails.Account> accountList = getAccounts();
@@ -145,6 +149,12 @@ public class XplanApplication {
 		investmentHoldings.getInvestmentHolding().addAll(investmentHoldingsList);
 		accounts.setInvestmentHoldings(investmentHoldings);
 
+		EPIDataResponse.Accounts.MovementTransactions movementTransactions = new EPIDataResponse.Accounts.MovementTransactions();
+		List<EPIDataResponse.Accounts.MovementTransactions.MovementTransaction> movementTransactionList = getMovementTransaction();
+		movementTransactions.getMovementTransaction().addAll(movementTransactionList);
+		accounts.setMovementTransactions(movementTransactions);
+
+
 		epiDataResponse.setAccounts(accounts);
 
 		// 8. SecurityMaster - An investment product, is a investment (e.g. Share, Managed Fund, Bond, Option etc) that is offered within the Product
@@ -153,6 +163,7 @@ public class XplanApplication {
 
 		securityMaster.getInvestmentProduct().addAll(investmentProducts);
 		epiDataResponse.setSecurityMaster(securityMaster);
+
 
 
 		// generating the xml output
