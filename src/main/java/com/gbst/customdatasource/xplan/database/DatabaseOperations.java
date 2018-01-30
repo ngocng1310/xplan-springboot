@@ -18,16 +18,27 @@ import java.util.Map;
 public class DatabaseOperations {
     private NamedParameterJdbcTemplate sharesTemplate;
 
+    private static final String ORG_CODE = "1188";
+    private static final String ADVISER_CODE = "88";
+    private static final String XPLAN_ADVISER = ORG_CODE + "-" + ADVISER_CODE;
+
     public List<EPIDataResponse.Advisers.Adviser> getAdvisers() {
 //        String query = queryRepository.getQuery("getAdviserInfoQuery");
 
         // advisers.sql
-        String query = "SELECT a.orgcode||'-'||a.advcode AS Id, a.advname AS FirstName, a.advname AS LastName FROM shares.advisor a";
+        String query = "SELECT a.orgcode||'-'||a.advcode AS Id, " +
+                "a.advname AS FirstName, " +
+                "a.advname AS LastName \n" +
+                "FROM shares.advisor a \n" +
+                "where a.advcode = :advCode\n" +
+                "and a.orgcode = :orgCode\n";
         Map<String, String> params = new HashMap<>();
-//        params.put("orgCode", orgCode);
-//        params.put("advCode", advCode);
+        params.put("orgCode", ORG_CODE);
+        params.put("advCode", ADVISER_CODE);
 
         List<EPIDataResponse.Advisers.Adviser> advisers = new ArrayList<>();
+
+        // should only expect one record so can changet to queryForObject later
         List<Map<String, Object>> rows = sharesTemplate.queryForList(query, params);
 
         for (Map row : rows) {
@@ -38,6 +49,11 @@ public class DatabaseOperations {
             advisers.add(adviser);
         }
         return advisers;
+    }
+
+    public List<EPIDataResponse.Accounts.AccountDetails.Account> getAccounts() {
+        List<EPIDataResponse.Accounts.AccountDetails.Account> accounts = getAccountsByAdviserId(XPLAN_ADVISER);
+        return accounts;
     }
 
     public List<EPIDataResponse.Accounts.AccountDetails.Account> getAccountsByAdviserId(String adviserId) {
