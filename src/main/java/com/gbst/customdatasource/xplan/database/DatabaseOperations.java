@@ -85,12 +85,30 @@ public class DatabaseOperations {
         Map<String, String> params = new HashMap<>();
         params.put("advCode", ADVISER_CODE);
         params.put("orgCode", ORG_CODE);
+
+        String feeQuery = "select 0 as \"Amount\",\n" +
+                "'Adviser' as \"Type\"\n" +
+                "from shares.cnote cn\n" +
+                "where cast(cn.\"cnote-num\" as varchar) = :cNoteNum\n" +
+                "and 'cni.tran-type in (SCN,BCN)' = 'cni.tran-type in (SCN,BCN)'";
+
+        Map<String, String> feeAndBrokerageQueryParams = new HashMap<>();
+
+        String brokerageQuery = "select cn.brok as \"BrokerageAmount\",\n" +
+                "cn.totaltax as \"TaxOnBrokerage\",\n" +
+                "cn.brok as \"CommissionAmount\"\n" +
+                "from shares.cnote cn\n" +
+                "where cast(cn.\"cnote-num\" as varchar) = :cNoteNum\n" +
+                "and 'cni.tran-type in (SCN,BCN)' = 'cni.tran-type in (SCN,BCN)'";
+
         List<Map<String, Object>> rows = sharesTemplate.queryForList(query, params);
         for (Map row : rows) {
             EPIDataResponse.Accounts.MovementTransactions.MovementTransaction movementTransaction = new EPIDataResponse.Accounts.MovementTransactions.MovementTransaction();
             movementTransaction.setAccountId(String.valueOf(row.get("AccountId")));
             movementTransaction.setInvestmentCode(String.valueOf(row.get("InvestmentCode")));
             movementTransaction.setExchange(String.valueOf(row.get("Exchange")));
+            String movementTransactionId = String.valueOf(row.get("id"));
+            movementTransaction.setId(movementTransactionId);
             movementTransaction.setTransactionType(formatTransactionType(String.valueOf(row.get("TransactionType"))));
             movementTransaction.setGrossValue(formatMoneytoryValue((BigDecimal) row.get("GrossValue")));
             movementTransaction.setNetValue(formatMoneytoryValue((BigDecimal) row.get("NetValue")));
@@ -101,10 +119,49 @@ public class DatabaseOperations {
             movementTransaction.setDelete(formatBooleanValue(String.valueOf(row.get("Delete"))));
             movementTransaction.setUnits((BigDecimal) row.get("Units"));
             movementTransaction.setCostBase(formatMoneytoryValue((BigDecimal) row.get("CostBase")));
+            // based on transaction id, retrieve the fee in movementtransactionfee.sql and brokerage info in brokerageandcommission.sql
+            feeAndBrokerageQueryParams.put("cNoteNum", movementTransactionId);
+            InvestmentHoldingTransaction.Fees fees = new InvestmentHoldingTransaction.Fees();
+            List<InvestmentHoldingTransaction.Fees.Fee> feeList = new ArrayList<>();
+            List<Map<String, Object>> feeRows = sharesTemplate.queryForList(feeQuery, feeAndBrokerageQueryParams);
+            for (Map feeRow : feeRows) {
+                InvestmentHoldingTransaction.Fees.Fee fee = new InvestmentHoldingTransaction.Fees.Fee();
+                fee.setAmount(formatMoneytoryValue(BigDecimal.valueOf((Integer) feeRow.get("Amount"))));
+                fee.setType(String.valueOf(row.get("Type")));
+                feeList.add(fee);
+            }
+            fees.getFee().addAll(feeList);
+            movementTransaction.setFees(fees);
+
+            RowMapper<InvestmentHoldingTransaction.BrokerageAndCommission> mapper = new RowMapper<InvestmentHoldingTransaction.BrokerageAndCommission>() {
+                @Override
+                public InvestmentHoldingTransaction.BrokerageAndCommission mapRow(ResultSet rs, int i) throws SQLException {
+                    InvestmentHoldingTransaction.BrokerageAndCommission brokerageAndCommission = new InvestmentHoldingTransaction.BrokerageAndCommission();
+                    brokerageAndCommission.setBrokerageAmount(formatMoneytoryValue((BigDecimal) rs.getBigDecimal("BrokerageAmount")));
+                    brokerageAndCommission.setTaxOnBrokerage((BigDecimal) rs.getBigDecimal("TaxOnBrokerage"));
+                    brokerageAndCommission.setCommissionAmount(formatMoneytoryValue((BigDecimal) rs.getBigDecimal("CommissionAmount")));
+                    return brokerageAndCommission;
+                }
+            };
+
+            List<Map<String, Object>> brokerageRows = sharesTemplate.queryForList(brokerageQuery, feeAndBrokerageQueryParams); // should only expect one record but can return empty to has to handle using list
+            InvestmentHoldingTransaction.BrokerageAndCommission brokerageAndCommission = null;
+            for (Map brokerageRow : brokerageRows) {
+                brokerageAndCommission = new InvestmentHoldingTransaction.BrokerageAndCommission();
+                brokerageAndCommission.setBrokerageAmount(formatMoneytoryValue((BigDecimal) brokerageRow.get("BrokerageAmount")));
+                brokerageAndCommission.setTaxOnBrokerage((BigDecimal) brokerageRow.get("TaxOnBrokerage"));
+                brokerageAndCommission.setCommissionAmount(formatMoneytoryValue((BigDecimal) brokerageRow.get("CommissionAmount")));
+                break;
+            }
+            if (brokerageAndCommission != null) {
+                movementTransaction.setBrokerageAndCommission(brokerageAndCommission);
+            }
+
             movementTransactions.add(movementTransaction);
         }
         return movementTransactions;
     }
+
 
     private InvestmentHoldingTransactionType formatTransactionType(String value) {
         try {
