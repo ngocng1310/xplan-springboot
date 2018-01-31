@@ -163,8 +163,9 @@ public class DatabaseOperations {
             String accountId = String.valueOf(row.get("AccountId"));
             accountBalance.setAccountId(accountId);
             accountBalance.setAsAtDate(getTime(String.valueOf(row.get("AsAtDate"))));
-            List<Object> investmentHoldingsList = new ArrayList<>();
+            List<AccountBalance.InvestmentHoldings.InvestmentHolding> investmentHoldingsList = new ArrayList<>();
             List<Map<String, Object>> investmentHoldingRows = sharesTemplate.queryForList(query, params);
+            EPIDataResponse.Accounts.AccountBalances.AccountBalance.InvestmentHoldings investmentHoldings = new EPIDataResponse.Accounts.AccountBalances.AccountBalance.InvestmentHoldings();
             for (Map investmentHoldingRow : investmentHoldingRows) {
                 EPIDataResponse.Accounts.AccountBalances.AccountBalance.InvestmentHoldings.InvestmentHolding investmentHolding = new EPIDataResponse.Accounts.AccountBalances.AccountBalance.InvestmentHoldings.InvestmentHolding();
                 String secId = String.valueOf(row.get("InvestmentID"));
@@ -193,7 +194,8 @@ public class DatabaseOperations {
                 }
                 investmentHoldingsList.add(investmentHolding);
             }
-            accountBalance.getMarketValueOrInvestmentHoldingsOrSuperannuation().addAll(investmentHoldingsList);
+            investmentHoldings.getInvestmentHolding().addAll(investmentHoldingsList);
+            accountBalance.getMarketValueOrInvestmentHoldingsOrSuperannuation().add(investmentHoldings);
             accountBalances.add(accountBalance);
         }
         return accountBalances;

@@ -177,11 +177,7 @@ public class XplanApplication {
 		// generating the xml output
 		JAXBContext context;
 		try { //"com.gbst.reporting.datasource.report.xplan.datafeed"
-			context = JAXBContext.newInstance(
-					EPIDataResponse.class,
-					EPIDataResponse.ExtractMethod.class,
-					EPIDataResponse.Advisers.Adviser.class);
-
+			context = JAXBContext.newInstance(EPIDataResponse.class);
 			Marshaller marshaller = context.createMarshaller();
 			marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
 
