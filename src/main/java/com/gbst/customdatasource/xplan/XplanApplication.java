@@ -67,6 +67,10 @@ public class XplanApplication {
 		return databaseOperations.getMovementTransaction();
 	}
 
+	private static List<EPIDataResponse.Accounts.AccountBalances.AccountBalance> getAccountBalances() {
+		return databaseOperations.getAccountBalances();
+	}
+
 	private static List<EPIDataResponse.Advisers.Adviser> getAdvisersLinkedToClient(String partyId) {
 		return null;
 	}
@@ -154,6 +158,10 @@ public class XplanApplication {
 		movementTransactions.getMovementTransaction().addAll(movementTransactionList);
 		accounts.setMovementTransactions(movementTransactions);
 
+		EPIDataResponse.Accounts.AccountBalances accountBalances = new EPIDataResponse.Accounts.AccountBalances();
+		List<EPIDataResponse.Accounts.AccountBalances.AccountBalance> accountBalanceList = getAccountBalances();
+		accountBalances.getAccountBalance().addAll(accountBalanceList);
+		accounts.setAccountBalances(accountBalances);
 
 		epiDataResponse.setAccounts(accounts);
 

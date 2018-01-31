@@ -5,7 +5,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Component;
-
 import javax.sql.DataSource;
 import javax.xml.datatype.DatatypeFactory;
 import javax.xml.datatype.XMLGregorianCalendar;
@@ -52,6 +51,152 @@ public class DatabaseOperations {
             advisers.add(adviser);
         }
         return advisers;
+    }
+
+    public List<EPIDataResponse.Accounts.AccountBalances.AccountBalance> getAccountBalances() {
+        List<EPIDataResponse.Accounts.AccountBalances.AccountBalance> accountBalances = new ArrayList<>();
+        // accountbalance.sql
+        String query = "select distinct\n" +
+                "c.clcode as \"AccountId\",\n" +
+                "current_date as \"AsAtDate\" \n" + // -- input parameter
+                "\n" +
+                "from shares.client c\n" +
+                "join shares.advisor ad on ad.advisorid = c.advisorid\n" +
+                "join shares.\"cli-hold\" ch on ch.clcode = c.clcode\n" +
+                "\n" +
+                "where ad.advcode = :advCode\n" +
+                "and ad.orgcode = :orgCode\n";
+        Map<String, String> params = new HashMap<>();
+        params.put("advCode", ADVISER_CODE);
+        params.put("orgCode", ORG_CODE);
+        List<Map<String, Object>> rows = sharesTemplate.queryForList(query, params);
+        String accBalanceInvestmentHoldingQuery = "SELECT seccode as \"InvestmentCode\",\n" +
+                "       secid as \"InvestmentID\",\n" +
+                "       \"market-id\" as \"Exchange\",\n" +
+                "       \"Portfolio Holdings\"*\"Closing Price\" as \"MarketValue\",\n" +
+                "       \"Closing Price\" as \"UnitPrice\",\n" +
+                "       current_date as \"AsAtDate\" \n" +
+                "\n" +
+                "from (\n" +
+                "\n" +
+                "    SELECT ch.seccode,\n" +
+                "           ch.clcode,\n" +
+                "\t\t   ch.secid,\n" +
+                "\t\t   ch.\"market-id\",\n" +
+                "\t       (SELECT price \n" +
+                "\t       FROM shares.phist p \n" +
+                "\t       WHERE p.secid = ch.secid \n" +
+                "\t       AND p.\"market-id\" = ch.\"market-id\" \n" +
+                "\t       AND p.cncycode = 'AUD'  -- This shouldn't be hardcoded, but too lazy to work out best method to support this at the moment.\n" +
+                "\t       ORDER BY pdate DESC limit 1) as \"Closing Price\",\n" +
+                "\t       \n" +
+                "           (    SELECT COALESCE(SUM(\"Portfolio Holdings\"), 0) AS \"Portfolio Holdings\"\n" +
+                "                FROM (\n" +
+                "                    SELECT clihold.\"total-hold\" AS \"Portfolio Holdings\"\n" +
+                "                    FROM shares.\"cli-hold\" AS clihold\n" +
+                "                    WHERE clihold.clcode = ch.clcode\n" +
+                "                      AND clihold.\"market-id\" = ch.\"market-id\"\n" +
+                "                      AND clihold.secid = ch.secid\n" +
+                "                      AND clihold.\"total-hold\" <> 0\n" +
+                "\n" +
+                "                    UNION ALL\n" +
+                "\n" +
+                "                    SELECT SUM(clitrtype.\"total-hold\" * clitran.\"tran-quant\" * -1) AS \"Portfolio Holdings\"\n" +
+                "                    FROM shares.\"cli-hold\" AS clihold\n" +
+                "                    JOIN shares.\"clitran\" AS clitran ON clitran.clcode = clihold.clcode AND clitran.\"tran-mkt\" = clihold.\"market-id\" AND clitran.secid = clihold.secid AND clitran.\"tran-quant\" <> 0\n" +
+                "                    JOIN shares.\"cli-trtype\" AS clitrtype ON clitrtype.\"tran-type\" = clitran.\"tran-code\" AND clitrtype.\"total-hold\" <> 0\n" +
+                "                    WHERE clihold.clcode = ch.clcode\n" +
+                "                      AND clihold.\"market-id\" = ch.\"market-id\"\n" +
+                "                      AND clitran.\"tran-date\" > current_date -- current_date to be replaced with input parameter\n" +
+                "                      AND clihold.secid = ch.secid\n" +
+                "                    GROUP BY clihold.seccode, clihold.secid\n" +
+                "                ) AS \"Portfolio\" ) AS \"Portfolio Holdings\"\n" +
+                "                \n" +
+                "    FROM shares.\"cli-hold\" ch\n" +
+                "    where ch.clcode = :clCode \n" +
+                "\n" +
+                ") AS \"Holdings\"\n";
+
+        String unitBalanceQuery = "SELECT \"Portfolio Holdings\" as \"Total\",\n" +
+                "       \"Portfolio Holdings\" as \"Settled\",\n" +
+                "       0 as \"Unsettled\"\n" +
+                "\n" +
+                "from (\n" +
+                "\n" +
+                "    SELECT ch.seccode,\n" +
+                "           ch.clcode,\n" +
+                "\t\t   ch.secid,\n" +
+                "\t\t   ch.\"market-id\",\n" +
+                "\t       (SELECT price FROM shares.phist p WHERE p.secid = ch.secid AND p.\"market-id\" = ch.\"market-id\" AND p.cncycode = 'AUD' ORDER BY pdate DESC limit 1) as \"Closing Price\",\n" +
+                "           (    SELECT COALESCE(SUM(\"Portfolio Holdings\"), 0) AS \"Portfolio Holdings\"\n" +
+                "                FROM (\n" +
+                "                    SELECT clihold.\"total-hold\" AS \"Portfolio Holdings\"\n" +
+                "                    FROM shares.\"cli-hold\" AS clihold\n" +
+                "                    WHERE clihold.clcode = ch.clcode\n" +
+                "                      AND clihold.\"market-id\" = ch.\"market-id\"\n" +
+                "                      AND clihold.secid = ch.secid\n" +
+                "                      AND clihold.\"total-hold\" <> 0\n" +
+                "\n" +
+                "                    UNION ALL\n" +
+                "\n" +
+                "                    SELECT SUM(clitrtype.\"total-hold\" * clitran.\"tran-quant\" * -1) AS \"Portfolio Holdings\"\n" +
+                "                    FROM shares.\"cli-hold\" AS clihold\n" +
+                "                    JOIN shares.\"clitran\" AS clitran ON clitran.clcode = clihold.clcode AND clitran.\"tran-mkt\" = clihold.\"market-id\" AND clitran.secid = clihold.secid AND clitran.\"tran-quant\" <> 0\n" +
+                "                    JOIN shares.\"cli-trtype\" AS clitrtype ON clitrtype.\"tran-type\" = clitran.\"tran-code\" AND clitrtype.\"total-hold\" <> 0\n" +
+                "                    WHERE clihold.clcode = ch.clcode\n" +
+                "                      AND clihold.\"market-id\" = ch.\"market-id\"\n" +
+                "                      AND clitran.\"tran-date\" > current_date -- current_date to be replaced with input parameter, passed from account balances investment holdings\n" +
+                "                      AND clihold.secid = ch.secid\n" +
+                "                    GROUP BY clihold.seccode, clihold.secid\n" +
+                "                ) AS \"Portfolio\" ) AS \"Portfolio Holdings\"\n" +
+                "                \n" +
+                "    FROM shares.\"cli-hold\" ch\n" +
+                "    where ch.clcode = :clcode \n" + // -- passed in from account balances investment holdings
+                "    and ch.\"market-id\" = :marketId \n" + // -- passed in from account balances investment holdings
+                "    and cast(ch.secid as varchar) = :secid \n" + // -- passed in from account balances investment holdings
+                "\n" +
+                ") AS \"Holdings\"\n";
+
+        Map<String, String> unitBalanceQueryParams = new HashMap<>();
+        for (Map row : rows) {
+            EPIDataResponse.Accounts.AccountBalances.AccountBalance accountBalance = new EPIDataResponse.Accounts.AccountBalances.AccountBalance();
+            String accountId = String.valueOf(row.get("AccountId"));
+            accountBalance.setAccountId(accountId);
+            accountBalance.setAsAtDate(getTime(String.valueOf(row.get("AsAtDate"))));
+            List<Object> investmentHoldingsList = new ArrayList<>();
+            List<Map<String, Object>> investmentHoldingRows = sharesTemplate.queryForList(query, params);
+            for (Map investmentHoldingRow : investmentHoldingRows) {
+                EPIDataResponse.Accounts.AccountBalances.AccountBalance.InvestmentHoldings.InvestmentHolding investmentHolding = new EPIDataResponse.Accounts.AccountBalances.AccountBalance.InvestmentHoldings.InvestmentHolding();
+                String secId = String.valueOf(row.get("InvestmentID"));
+                String secCode = String.valueOf(row.get("InvestmentCode"));
+                String marketId = String.valueOf(row.get("Exchange"));
+                unitBalanceQueryParams.put("marketId", marketId);
+                unitBalanceQueryParams.put("secid", secId);
+                unitBalanceQueryParams.put("clcode", accountId);
+                investmentHolding.setInvestmentCode(secCode);
+                investmentHolding.setExchange(marketId);
+                investmentHolding.setMarketValue(formatMoneytoryValue((BigDecimal)(row.get("MarketValue"))));
+                investmentHolding.setAsAtDate(getTime(String.valueOf(row.get("AsAtDate"))));
+                investmentHolding.setUnitPrice(formatMoneytoryValue((BigDecimal) row.get("UnitPrice")));
+                // unit balance
+                AccountBalance.InvestmentHoldings.InvestmentHolding.UnitBalance unitBalance = null;
+                List<Map<String, Object>> unitBalancesRows = sharesTemplate.queryForList(unitBalanceQuery, unitBalanceQueryParams); // should only expect one record but can return empty to has to handle using list
+                for (Map unitBalancesRow : unitBalancesRows) {
+                    unitBalance = new AccountBalance.InvestmentHoldings.InvestmentHolding.UnitBalance();
+                    unitBalance.setSettled((BigDecimal) unitBalancesRow.get("Settled"));
+                    unitBalance.setTotal((BigDecimal) unitBalancesRow.get("Total"));
+                    unitBalance.setUnsettled((BigDecimal) unitBalancesRow.get("Unsettled"));
+                    break;
+                }
+                if (unitBalance != null) {
+                    investmentHolding.setUnitBalance(unitBalance);
+                }
+                investmentHoldingsList.add(investmentHolding);
+            }
+            accountBalance.getMarketValueOrInvestmentHoldingsOrSuperannuation().addAll(investmentHoldingsList);
+            accountBalances.add(accountBalance);
+        }
+        return accountBalances;
     }
 
     public List<EPIDataResponse.Accounts.MovementTransactions.MovementTransaction> getMovementTransaction() {
