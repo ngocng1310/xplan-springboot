@@ -195,7 +195,11 @@ public class DatabaseOperations {
                 investmentHoldingsList.add(investmentHolding);
             }
             investmentHoldings.getInvestmentHolding().addAll(investmentHoldingsList);
+            //MonetaryAmount marketValue = new MonetaryAmount();
+            //AccountBalance.Superannuation superannuation = new AccountBalance.Superannuation();
             accountBalance.getMarketValueOrInvestmentHoldingsOrSuperannuation().add(investmentHoldings);
+            //accountBalance.getMarketValueOrInvestmentHoldingsOrSuperannuation().add(marketValue);
+            //accountBalance.getMarketValueOrInvestmentHoldingsOrSuperannuation().add(superannuation);
             accountBalances.add(accountBalance);
         }
         return accountBalances;
@@ -327,6 +331,9 @@ public class DatabaseOperations {
     }
 
     private MonetaryAmount formatMoneytoryValue(BigDecimal value) {
+        if (value == null) {
+            value = BigDecimal.ZERO;
+        }
         MonetaryAmount amount = new MonetaryAmount();
         amount.setValue(value);
         return amount;
