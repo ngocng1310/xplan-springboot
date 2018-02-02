@@ -164,7 +164,7 @@ public class DatabaseOperations {
             accountBalance.setAccountId(accountId);
             accountBalance.setAsAtDate(getTime(String.valueOf(row.get("AsAtDate"))));
             List<AccountBalance.InvestmentHoldings.InvestmentHolding> investmentHoldingsList = new ArrayList<>();
-            List<Map<String, Object>> investmentHoldingRows = sharesTemplate.queryForList(query, params);
+            List<Map<String, Object>> investmentHoldingRows = sharesTemplate.queryForList(accBalanceInvestmentHoldingQuery, params);
             EPIDataResponse.Accounts.AccountBalances.AccountBalance.InvestmentHoldings investmentHoldings = new EPIDataResponse.Accounts.AccountBalances.AccountBalance.InvestmentHoldings();
             for (Map investmentHoldingRow : investmentHoldingRows) {
                 EPIDataResponse.Accounts.AccountBalances.AccountBalance.InvestmentHoldings.InvestmentHolding investmentHolding = new EPIDataResponse.Accounts.AccountBalances.AccountBalance.InvestmentHoldings.InvestmentHolding();
