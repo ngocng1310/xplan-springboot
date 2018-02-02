@@ -171,17 +171,17 @@ public class DatabaseOperations {
             EPIDataResponse.Accounts.AccountBalances.AccountBalance.InvestmentHoldings investmentHoldings = new EPIDataResponse.Accounts.AccountBalances.AccountBalance.InvestmentHoldings();
             for (Map investmentHoldingRow : investmentHoldingRows) {
                 EPIDataResponse.Accounts.AccountBalances.AccountBalance.InvestmentHoldings.InvestmentHolding investmentHolding = new EPIDataResponse.Accounts.AccountBalances.AccountBalance.InvestmentHoldings.InvestmentHolding();
-                String secId = String.valueOf(row.get("InvestmentID"));
-                String secCode = String.valueOf(row.get("InvestmentCode"));
-                String marketId = String.valueOf(row.get("Exchange"));
+                String secId = String.valueOf(investmentHoldingRow.get("InvestmentID"));
+                String secCode = String.valueOf(investmentHoldingRow.get("InvestmentCode"));
+                String marketId = String.valueOf(investmentHoldingRow.get("Exchange"));
                 unitBalanceQueryParams.put("marketId", marketId);
                 unitBalanceQueryParams.put("secid", secId);
                 unitBalanceQueryParams.put("clcode", accountId);
                 investmentHolding.setInvestmentCode(secCode);
                 investmentHolding.setExchange(marketId);
-                investmentHolding.setMarketValue(formatMoneytoryValue((BigDecimal)(row.get("MarketValue"))));
-                investmentHolding.setAsAtDate(getTime(String.valueOf(row.get("AsAtDate"))));
-                investmentHolding.setUnitPrice(formatMoneytoryValue((BigDecimal) row.get("UnitPrice")));
+                investmentHolding.setMarketValue(formatMoneytoryValue((BigDecimal)(investmentHoldingRow.get("MarketValue"))));
+                investmentHolding.setAsAtDate(getTime(String.valueOf(investmentHoldingRow.get("AsAtDate"))));
+                investmentHolding.setUnitPrice(formatMoneytoryValue((BigDecimal) investmentHoldingRow.get("UnitPrice")));
                 // unit balance
                 AccountBalance.InvestmentHoldings.InvestmentHolding.UnitBalance unitBalance = null;
                 List<Map<String, Object>> unitBalancesRows = sharesTemplate.queryForList(unitBalanceQuery, unitBalanceQueryParams); // should only expect one record but can return empty to has to handle using list
@@ -189,7 +189,7 @@ public class DatabaseOperations {
                     unitBalance = new AccountBalance.InvestmentHoldings.InvestmentHolding.UnitBalance();
                     unitBalance.setSettled((BigDecimal) unitBalancesRow.get("Settled"));
                     unitBalance.setTotal((BigDecimal) unitBalancesRow.get("Total"));
-                    unitBalance.setUnsettled((BigDecimal) unitBalancesRow.get("Unsettled"));
+                    unitBalance.setUnsettled(BigDecimal.valueOf((Integer) unitBalancesRow.get("Unsettled")));
                     break;
                 }
                 if (unitBalance != null) {
