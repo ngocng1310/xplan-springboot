@@ -117,6 +117,8 @@ public class DatabaseOperations {
                 "\n" +
                 ") AS \"Holdings\"\n";
 
+        Map<String, String> accBalanceInvestmentHoldingQueryParams = new HashMap<>();
+
         String unitBalanceQuery = "SELECT \"Portfolio Holdings\" as \"Total\",\n" +
                 "       \"Portfolio Holdings\" as \"Settled\",\n" +
                 "       0 as \"Unsettled\"\n" +
@@ -164,7 +166,8 @@ public class DatabaseOperations {
             accountBalance.setAccountId(accountId);
             accountBalance.setAsAtDate(getTime(String.valueOf(row.get("AsAtDate"))));
             List<AccountBalance.InvestmentHoldings.InvestmentHolding> investmentHoldingsList = new ArrayList<>();
-            List<Map<String, Object>> investmentHoldingRows = sharesTemplate.queryForList(accBalanceInvestmentHoldingQuery, params);
+            accBalanceInvestmentHoldingQueryParams.put("clCode", accountId);
+            List<Map<String, Object>> investmentHoldingRows = sharesTemplate.queryForList(accBalanceInvestmentHoldingQuery, accBalanceInvestmentHoldingQueryParams);
             EPIDataResponse.Accounts.AccountBalances.AccountBalance.InvestmentHoldings investmentHoldings = new EPIDataResponse.Accounts.AccountBalances.AccountBalance.InvestmentHoldings();
             for (Map investmentHoldingRow : investmentHoldingRows) {
                 EPIDataResponse.Accounts.AccountBalances.AccountBalance.InvestmentHoldings.InvestmentHolding investmentHolding = new EPIDataResponse.Accounts.AccountBalances.AccountBalance.InvestmentHoldings.InvestmentHolding();
